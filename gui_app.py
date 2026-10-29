@@ -10,10 +10,14 @@ import threading
 import time
 import webbrowser
 import ctypes
+from ctypes import wintypes
+from PIL import Image, ImageTk, ImageDraw
+import qrcode
+import psutil
 import win32job
 import win32api
 
-# Base directory resolution (works for both standalone Python and PyInstaller --onefile)
+# Base directory resolution
 if getattr(sys, 'frozen', False):
     APP_DIR = os.path.dirname(os.path.abspath(sys.executable))
 else:
@@ -22,19 +26,26 @@ else:
 ENGINE_EXE = os.path.join(APP_DIR, "uxplay-windows.exe")
 ICON_PATH = os.path.join(APP_DIR, "resources", "icon.ico")
 CONFIG_FILE = os.path.join(APP_DIR, "config.json")
-SINGLE_INSTANCE_PORT = 54329
 GITHUB_REPO_URL = "https://github.com/UnknowJester/AirPlay-Mirroring"
+SINGLE_INSTANCE_MUTEX = "AirPlayReceiverWindows_SingleInstanceMutex_v1"
+
+user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
 
 DEFAULT_CONFIG = {
-    "device_name": "AirPlay4979",
+    "device_name": "Pc-dav",
     "pin_enabled": False,
     "pin_code": "1234",
     "resolution": "1080p",
     "fps": "60",
     "low_latency": True,
-    "fullscreen": False,
+    "audio_latency": "0.1",
+    "fullscreen_auto": False,
+    "always_on_top": False,
     "rotation": "0",
-    "enable_audio": True
+    "enable_audio": True,
+    "color_range_srgb": True,
+    "theme": "light"
 }
 
 def load_config():
@@ -56,75 +67,44 @@ def save_config(config):
     except Exception:
         pass
 
-def get_local_ip():
+def get_network_info():
+    """Dynamically detects active network adapter and local IP."""
+    ip = "127.0.0.1"
+    net_type = "Wi-Fi"
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return ip
+        
+        for iface_name, snics in psutil.net_if_addrs().items():
+            for snic in snics:
+                if snic.address == ip:
+                    net_type = iface_name
+                    break
     except Exception:
-        return "127.0.0.1"
+        pass
+    return net_type, ip
 
 def focus_existing_window():
     try:
-        hwnd = ctypes.windll.user32.FindWindowW(None, "AirPlay Receiver - Windows")
+        hwnd = user32.FindWindowW(None, "AirMirroring - AirPlay Receiver")
         if hwnd:
-            ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-            ctypes.windll.user32.SetForegroundWindow(hwnd)
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+            user32.SetForegroundWindow(hwnd)
     except Exception:
         pass
-
-def get_connected_client(pid):
-    """Detects active remote TCP connection to the UxPlay process."""
-    if not pid:
-        return None
-    # 1. Try psutil
-    try:
-        import psutil
-        for conn in psutil.net_connections(kind='tcp'):
-            if conn.pid == pid and conn.status == 'ESTABLISHED':
-                if conn.raddr and conn.raddr.ip not in ('127.0.0.1', '::1', '0.0.0.0'):
-                    return conn.raddr.ip
-        return None
-    except Exception:
-        pass
-
-    # 2. Fallback to netstat
-    try:
-        startupinfo = None
-        if sys.platform == "win32":
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            startupinfo.wShowWindow = 0
-        out = subprocess.check_output(
-            f'netstat -ano | findstr {pid}',
-            shell=True,
-            text=True,
-            startupinfo=startupinfo,
-            stderr=subprocess.DEVNULL
-        )
-        for line in out.splitlines():
-            if 'ESTABLISHED' in line:
-                parts = line.split()
-                if len(parts) >= 3:
-                    remote = parts[2].rsplit(':', 1)[0]
-                    if remote not in ('127.0.0.1', '::1', '[::1]', '0.0.0.0'):
-                        return remote
-    except Exception:
-        pass
-    return None
 
 def write_uxplay_arguments(config):
     """Generates the command arguments for UxPlay and updates all sync locations."""
     args = []
     
     # Device name (sanitize spaces to '-' and strip invalid chars for mDNS)
-    raw_name = str(config.get("device_name", "AirPlay4979")).strip()
+    raw_name = str(config.get("device_name", "Pc-dav")).strip()
     clean_name = raw_name.replace(" ", "-").replace('"', '').replace("'", "")
     clean_name = "".join(c for c in clean_name if c.isalnum() or c in ("-", "_")).strip()
     if not clean_name:
-        clean_name = "AirPlay4979"
+        clean_name = "Pc-dav"
     args.append(f"-n {clean_name}")
     args.append("-nh")  # Don't append hostname
     
@@ -141,6 +121,8 @@ def write_uxplay_arguments(config):
     fps = config.get("fps", "60")
     if res == "720p":
         args.append(f"-s 1280x720@{fps}")
+    elif res == "1440p":
+        args.append(f"-s 2560x1440@{fps}")
     elif res == "4K":
         args.append(f"-s 3840x2160@{fps}")
         args.append("-h265")
@@ -152,13 +134,14 @@ def write_uxplay_arguments(config):
     # Low latency optimizations (Zero-Lag)
     if config.get("low_latency", True):
         args.append("-vsync no")
-        args.append("-al 0.1")
-    else:
-        args.append("-al 0.25")
         
-    # Fullscreen mode
-    if config.get("fullscreen", False):
-        args.append("-fs")
+    # Audio latency buffer
+    alat = config.get("audio_latency", "0.1")
+    args.append(f"-al {alat}")
+        
+    # Color range
+    if config.get("color_range_srgb", True):
+        args.append("-srgb")
         
     # Video window rotation
     rot = config.get("rotation", "0")
@@ -173,7 +156,10 @@ def write_uxplay_arguments(config):
     if not config.get("enable_audio", True):
         args.append("-as 0")
         
-    # Clean termination flags
+    # Natural audio profile
+    args.append("-taper")
+    
+    # Clean termination flag
     args.append("-nofreeze")
     
     content = " ".join(args) + "\n"
@@ -192,43 +178,68 @@ def write_uxplay_arguments(config):
         except Exception:
             pass
 
-class ModernAirPlayApp:
+def find_window_by_pid(pid):
+    """Finds visible rendering window belonging to the engine process."""
+    hwnds = []
+    def enum_cb(hwnd, lparam):
+        if user32.IsWindow(hwnd) and user32.IsWindowVisible(hwnd):
+            w_pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(w_pid))
+            if w_pid.value == pid:
+                rect = wintypes.RECT()
+                user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                w = rect.right - rect.left
+                h = rect.bottom - rect.top
+                if w > 80 and h > 80:
+                    hwnds.append(hwnd)
+        return True
+    
+    WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
+    user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
+    return hwnds
+
+def get_connected_client(pid):
+    """Detects active remote TCP connection to the UxPlay process."""
+    if not pid:
+        return None
+    try:
+        for conn in psutil.net_connections(kind='tcp'):
+            if conn.pid == pid and conn.status == 'ESTABLISHED':
+                if conn.raddr and conn.raddr.ip not in ('127.0.0.1', '::1', '0.0.0.0'):
+                    return conn.raddr.ip
+    except Exception:
+        pass
+    return None
+
+class AirMirroringApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("AirPlay Receiver - Windows")
-        self.root.geometry("540x670")
-        self.root.resizable(False, False)
-        self.root.configure(bg="#181825")
+        self.root.title("AirMirroring - AirPlay Receiver")
+        self.root.geometry("980x620")
+        self.root.minsize(860, 540)
+        self.root.configure(bg="#eef2ff")
         
         if os.path.exists(ICON_PATH):
             try:
                 self.root.iconbitmap(ICON_PATH)
             except Exception:
                 pass
-
-        try:
-            style = ttk.Style()
-            style.theme_use('clam')
-            style.configure('TCombobox',
-                            fieldbackground='#181825',
-                            background='#313244',
-                            foreground='#cdd6f4',
-                            arrowcolor='#89b4fa',
-                            bordercolor='#45475a')
-            style.map('TCombobox',
-                      fieldbackground=[('readonly', '#181825')],
-                      selectbackground=[('readonly', '#181825')],
-                      selectforeground=[('readonly', '#cdd6f4')])
-        except Exception:
-            pass
                 
         self.config = load_config()
         self.engine_proc = None
         self.job = None
-        self.local_ip = get_local_ip()
         self.running = True
         self.connected_client_ip = None
+        self.embedded_video_hwnd = None
+        self.is_fullscreen = False
+        self.dot_phase = 0
         
+        self.net_type, self.local_ip = get_network_info()
+        
+        # Apply always-on-top preference
+        if self.config.get("always_on_top", False):
+            self.root.attributes("-topmost", True)
+            
         # Windows Job Object configuration for 100% kill guarantee on close
         try:
             self.job = win32job.CreateJobObject(None, "")
@@ -239,446 +250,354 @@ class ModernAirPlayApp:
             self.job = None
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.root.bind("<F11>", lambda e: self.toggle_fullscreen())
+        self.root.bind("<f>", lambda e: self.toggle_fullscreen())
+        self.root.bind("<Escape>", lambda e: self.exit_fullscreen())
         
-        self._build_header()
-        self._build_tabs()
-        self._build_status_footer()
+        self._build_top_bar()
+        self._build_main_views()
+        self._build_footer()
         
-        # Start engine with initial config
+        # Start engine
         self.start_engine()
         
-        # Start background monitor thread for connection status
+        # Start animations and monitor loops
+        self._animate_dots_loop()
         self.monitor_thread = threading.Thread(target=self._connection_monitor_loop, daemon=True)
         self.monitor_thread.start()
 
-    def _build_header(self):
-        hdr_frame = tk.Frame(self.root, bg="#1e1e2e", pady=12, padx=20)
-        hdr_frame.pack(fill="x")
+    def _build_top_bar(self):
+        self.top_bar = tk.Frame(self.root, bg="#f1f5f9", height=42, padx=18)
+        self.top_bar.pack(fill="x", side="top")
+        self.top_bar.pack_propagate(False)
         
-        top_row = tk.Frame(hdr_frame, bg="#1e1e2e")
-        top_row.pack(fill="x")
+        # Left brand title
+        brand_frame = tk.Frame(self.top_bar, bg="#f1f5f9")
+        brand_frame.pack(side="left", fill="y")
         
-        title_lbl = tk.Label(top_row, text="AirPlay Receiver Studio", font=("Segoe UI", 16, "bold"),
-                             fg="#89b4fa", bg="#1e1e2e")
-        title_lbl.pack(side="left")
+        brand_lbl = tk.Label(brand_frame, text="AirMirroring", font=("Segoe UI", 12, "bold"),
+                             fg="#1e293b", bg="#f1f5f9")
+        brand_lbl.pack(side="left", pady=8)
         
-        badge_lbl = tk.Label(top_row, text=" v1.1 ", font=("Segoe UI", 9, "bold"),
-                             fg="#11111b", bg="#a6e3a1", padx=5, pady=1)
-        badge_lbl.pack(side="left", padx=(8, 0), pady=(3, 0))
+        ver_badge = tk.Label(brand_frame, text="Pro", font=("Segoe UI", 8, "bold"),
+                             fg="#3b82f6", bg="#dbeafe", padx=5, pady=1)
+        ver_badge.pack(side="left", padx=(6, 0), pady=10)
         
-        sub_lbl = tk.Label(hdr_frame, text="Duplicazione schermo iPhone/iPad su Windows • Zero Latenza",
-                           font=("Segoe UI", 9), fg="#a6adc8", bg="#1e1e2e")
-        sub_lbl.pack(anchor="w", pady=(2, 0))
-
-    def _build_tabs(self):
-        # Segmented custom tab switcher
-        tab_nav_frame = tk.Frame(self.root, bg="#181825", pady=8, padx=20)
-        tab_nav_frame.pack(fill="x")
+        # Right action buttons
+        actions_frame = tk.Frame(self.top_bar, bg="#f1f5f9")
+        actions_frame.pack(side="right", fill="y")
         
-        self.tab_buttons = {}
-        tab_specs = [
-            ("main", "📱 Ricevitore & Guida"),
-            ("settings", "⚙️ Impostazioni"),
-            ("diagnostics", "📊 Info & Diagnostica")
-        ]
-        
-        btn_container = tk.Frame(tab_nav_frame, bg="#1e1e2e", highlightbackground="#313244", highlightthickness=1)
-        btn_container.pack(fill="x")
-        
-        for key, text in tab_specs:
-            btn = tk.Button(
-                btn_container,
-                text=text,
-                font=("Segoe UI", 9, "bold"),
-                relief="flat",
-                bd=0,
-                pady=7,
-                cursor="hand2",
-                command=lambda k=key: self.switch_tab(k)
-            )
-            btn.pack(side="left", fill="x", expand=True)
-            self.tab_buttons[key] = btn
-            
-        # Tab content container
-        self.tab_content = tk.Frame(self.root, bg="#181825", padx=20)
-        self.tab_content.pack(fill="both", expand=True)
-        
-        self.tab_frames = {
-            "main": tk.Frame(self.tab_content, bg="#181825"),
-            "settings": tk.Frame(self.tab_content, bg="#181825"),
-            "diagnostics": tk.Frame(self.tab_content, bg="#181825")
-        }
-        
-        self._init_main_tab()
-        self._init_settings_tab()
-        self._init_diagnostics_tab()
-        
-        self.switch_tab("main")
-
-    def switch_tab(self, selected_key):
-        for key, frame in self.tab_frames.items():
-            if key == selected_key:
-                frame.pack(fill="both", expand=True)
-                self.tab_buttons[key].configure(bg="#313244", fg="#89b4fa")
-            else:
-                frame.pack_forget()
-                self.tab_buttons[key].configure(bg="#1e1e2e", fg="#a6adc8")
-
-    def _init_main_tab(self):
-        f = self.tab_frames["main"]
-        
-        # Active Status Card
-        self.status_card = tk.Frame(f, bg="#1e1e2e", padx=16, pady=12,
-                                    highlightbackground="#313244", highlightthickness=1)
-        self.status_card.pack(fill="x", pady=(6, 8))
-        
-        status_row = tk.Frame(self.status_card, bg="#1e1e2e")
-        status_row.pack(fill="x")
-        
-        self.status_dot = tk.Label(status_row, text="●", font=("Segoe UI", 16), fg="#f9e2af", bg="#1e1e2e")
-        self.status_dot.pack(side="left", padx=(0, 6))
-        
-        self.status_title = tk.Label(status_row, text="IN ASCOLTO (Pronto alla connessione)",
-                                     font=("Segoe UI", 11, "bold"), fg="#f9e2af", bg="#1e1e2e")
-        self.status_title.pack(side="left")
-        
-        self.status_details = tk.Label(self.status_card,
-                                       text=f"Nome AirPlay: {self.config.get('device_name')}  |  IP: {self.local_ip}",
-                                       font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.status_details.pack(anchor="w", pady=(4, 0))
-        
-        self.client_info_lbl = tk.Label(self.status_card, text="Nessun dispositivo attualmente collegato.",
-                                        font=("Segoe UI", 8, "italic"), fg="#a6adc8", bg="#1e1e2e")
-        self.client_info_lbl.pack(anchor="w", pady=(2, 0))
-
-        # Overview Grid
-        grid_card = tk.Frame(f, bg="#1e1e2e", padx=16, pady=10,
-                             highlightbackground="#313244", highlightthickness=1)
-        grid_card.pack(fill="x", pady=(0, 8))
-        
-        self.ov_res_lbl = tk.Label(grid_card, text=f"• Risoluzione: {self.config.get('resolution')} @ {self.config.get('fps')} FPS",
-                                   font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.ov_res_lbl.pack(anchor="w", pady=1)
-        
-        pin_text = f"Attivo ({self.config.get('pin_code')})" if self.config.get("pin_enabled") else "Disattivato (Libero)"
-        self.ov_pin_lbl = tk.Label(grid_card, text=f"• Protezione PIN: {pin_text}",
-                                   font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.ov_pin_lbl.pack(anchor="w", pady=1)
-        
-        latency_text = "Attiva (Zero-Lag)" if self.config.get("low_latency") else "Standard"
-        self.ov_lat_lbl = tk.Label(grid_card, text=f"• Bassa Latenza: {latency_text}",
-                                   font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.ov_lat_lbl.pack(anchor="w", pady=1)
-
-        # Instructions Card
-        instr_card = tk.Frame(f, bg="#1e1e2e", padx=16, pady=12,
-                              highlightbackground="#313244", highlightthickness=1)
-        instr_card.pack(fill="x", pady=(0, 8))
-        
-        instr_hdr = tk.Label(instr_card, text="Come duplicare lo schermo dell'iPhone:",
-                             font=("Segoe UI", 10, "bold"), fg="#89b4fa", bg="#1e1e2e")
-        instr_hdr.pack(anchor="w", pady=(0, 4))
-        
-        steps = (
-            "1. Connetti iPhone e PC alla stessa rete Wi-Fi.\n"
-            "2. Apri il Centro di Controllo (scorri verso il basso dall'angolo in alto a destra).\n"
-            "3. Tocca l'icona 'Duplica schermo' (due rettangoli sovrapposti).\n"
-            f"4. Seleziona '{self.config.get('device_name')}' dalla lista."
+        self.carplay_btn = tk.Button(
+            actions_frame, text="* Wireless CarPlay", font=("Segoe UI", 9),
+            bg="#ffffff", fg="#475569", relief="flat", bd=0, padx=12, pady=3,
+            cursor="hand2", highlightbackground="#e2e8f0", highlightthickness=1,
+            command=self.show_carplay_dialog
         )
-        self.instr_text_lbl = tk.Label(instr_card, text=steps, font=("Segoe UI", 9),
-                                       fg="#cdd6f4", bg="#1e1e2e", justify="left")
-        self.instr_text_lbl.pack(anchor="w")
-
-        # Quick Control Actions
-        action_row = tk.Frame(f, bg="#181825")
-        action_row.pack(fill="x", pady=(2, 0))
+        self.carplay_btn.pack(side="left", padx=(0, 8), pady=6)
         
-        restart_btn = tk.Button(action_row, text="🔄 Riavvia Motore AirPlay", font=("Segoe UI", 9, "bold"),
-                                bg="#313244", fg="#89b4fa", activebackground="#45475a", activeforeground="#89b4fa",
-                                relief="flat", padx=12, pady=7, cursor="hand2", command=self.restart_engine)
-        restart_btn.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        
-        settings_nav_btn = tk.Button(action_row, text="⚙️ Modifica Impostazioni", font=("Segoe UI", 9, "bold"),
-                                     bg="#313244", fg="#cba6f7", activebackground="#45475a", activeforeground="#cba6f7",
-                                     relief="flat", padx=12, pady=7, cursor="hand2",
-                                     command=lambda: self.switch_tab("settings"))
-        settings_nav_btn.pack(side="right", fill="x", expand=True, padx=(5, 0))
-
-    def _init_settings_tab(self):
-        f = self.tab_frames["settings"]
-        
-        # Scrollable or compact card for settings
-        card = tk.Frame(f, bg="#1e1e2e", padx=16, pady=12,
-                        highlightbackground="#313244", highlightthickness=1)
-        card.pack(fill="both", expand=True, pady=(6, 8))
-        
-        # 1. Device Name
-        name_lbl = tk.Label(card, text="Nome Ricevitore AirPlay:", font=("Segoe UI", 9, "bold"),
-                            fg="#89b4fa", bg="#1e1e2e")
-        name_lbl.pack(anchor="w")
-        
-        name_row = tk.Frame(card, bg="#1e1e2e")
-        name_row.pack(fill="x", pady=(3, 8))
-        
-        self.name_entry = tk.Entry(name_row, font=("Segoe UI", 10), bg="#181825", fg="#cdd6f4",
-                                   insertbackground="#cdd6f4", relief="flat", highlightbackground="#45475a",
-                                   highlightthickness=1)
-        self.name_entry.insert(0, self.config.get("device_name", "AirPlay4979"))
-        self.name_entry.pack(side="left", fill="x", expand=True, padx=(0, 8), ipady=3)
-        
-        reset_name_btn = tk.Button(name_row, text="Default", font=("Segoe UI", 8), bg="#313244", fg="#a6adc8",
-                                   relief="flat", padx=8, pady=2, cursor="hand2",
-                                   command=lambda: (self.name_entry.delete(0, tk.END), self.name_entry.insert(0, "AirPlay4979")))
-        reset_name_btn.pack(side="right")
-
-        hint_lbl = tk.Label(card, text="💡 Gli spazi sono convertiti automaticamente in '-' (es. 'Pc-dav') per mDNS Apple.",
-                            font=("Segoe UI", 8), fg="#a6adc8", bg="#1e1e2e")
-        hint_lbl.pack(anchor="w", pady=(0, 6))
-
-        # 2. PIN Security
-        pin_lbl = tk.Label(card, text="Sicurezza & PIN di Accesso:", font=("Segoe UI", 9, "bold"),
-                           fg="#89b4fa", bg="#1e1e2e")
-        pin_lbl.pack(anchor="w")
-        
-        pin_row = tk.Frame(card, bg="#1e1e2e")
-        pin_row.pack(fill="x", pady=(3, 8))
-        
-        self.pin_enabled_var = tk.BooleanVar(value=self.config.get("pin_enabled", False))
-        pin_cb = tk.Checkbutton(pin_row, text="Richiedi PIN a 4 cifre", variable=self.pin_enabled_var,
-                                font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e", selectcolor="#181825",
-                                activebackground="#1e1e2e", activeforeground="#cdd6f4")
-        pin_cb.pack(side="left")
-        
-        self.pin_entry = tk.Entry(pin_row, font=("Segoe UI", 10, "bold"), width=6, bg="#181825", fg="#f9e2af",
-                                  insertbackground="#f9e2af", relief="flat", justify="center",
-                                  highlightbackground="#45475a", highlightthickness=1)
-        self.pin_entry.insert(0, self.config.get("pin_code", "1234"))
-        self.pin_entry.pack(side="left", padx=(10, 8), ipady=2)
-        
-        gen_pin_btn = tk.Button(pin_row, text="🎲 Genera PIN", font=("Segoe UI", 8), bg="#313244", fg="#a6adc8",
-                                relief="flat", padx=8, pady=2, cursor="hand2", command=self.generate_random_pin)
-        gen_pin_btn.pack(side="left")
-
-        # 3. Resolution & FPS
-        video_lbl = tk.Label(card, text="Qualità Video & Fluidità:", font=("Segoe UI", 9, "bold"),
-                             fg="#89b4fa", bg="#1e1e2e")
-        video_lbl.pack(anchor="w")
-        
-        video_row = tk.Frame(card, bg="#1e1e2e")
-        video_row.pack(fill="x", pady=(3, 8))
-        
-        self.res_var = tk.StringVar(value=self.config.get("resolution", "1080p"))
-        res_cb = ttk.Combobox(video_row, textvariable=self.res_var, state="readonly", width=18,
-                              values=["1080p (Full HD)", "720p (Max Fluidità)", "4K (Ultra HD - H.265)"])
-        # map to simple keys
-        res_current = self.config.get("resolution", "1080p")
-        if res_current == "720p":
-            res_cb.current(1)
-        elif res_current == "4K":
-            res_cb.current(2)
-        else:
-            res_cb.current(0)
-        res_cb.pack(side="left", padx=(0, 10))
-        
-        self.fps_var = tk.StringVar(value=self.config.get("fps", "60"))
-        fps_cb = ttk.Combobox(video_row, textvariable=self.fps_var, state="readonly", width=10,
-                              values=["60 FPS", "30 FPS"])
-        fps_cb.current(0 if self.config.get("fps") == "60" else 1)
-        fps_cb.pack(side="left")
-
-        # 4. Display & Optimizations
-        opts_lbl = tk.Label(card, text="Opzioni Display & Prestazioni:", font=("Segoe UI", 9, "bold"),
-                            fg="#89b4fa", bg="#1e1e2e")
-        opts_lbl.pack(anchor="w")
-        
-        opts_frame = tk.Frame(card, bg="#1e1e2e")
-        opts_frame.pack(fill="x", pady=(2, 6))
-        
-        self.low_latency_var = tk.BooleanVar(value=self.config.get("low_latency", True))
-        lat_cb = tk.Checkbutton(opts_frame, text="⚡ Modalità Bassa Latenza (Zero-Lag, rendering immediato)",
-                                variable=self.low_latency_var, font=("Segoe UI", 9), fg="#a6e3a1",
-                                bg="#1e1e2e", selectcolor="#181825", activebackground="#1e1e2e",
-                                activeforeground="#a6e3a1")
-        lat_cb.pack(anchor="w")
-        
-        self.fullscreen_var = tk.BooleanVar(value=self.config.get("fullscreen", False))
-        fs_cb = tk.Checkbutton(opts_frame, text="📺 Schermo intero automatico all'avvio dello stream (-fs)",
-                               variable=self.fullscreen_var, font=("Segoe UI", 9), fg="#cdd6f4",
-                               bg="#1e1e2e", selectcolor="#181825", activebackground="#1e1e2e",
-                               activeforeground="#cdd6f4")
-        fs_cb.pack(anchor="w")
-        
-        self.audio_var = tk.BooleanVar(value=self.config.get("enable_audio", True))
-        audio_cb = tk.Checkbutton(opts_frame, text="🔊 Riproduci audio dell'iPhone sugli altoparlanti del PC",
-                                  variable=self.audio_var, font=("Segoe UI", 9), fg="#cdd6f4",
-                                  bg="#1e1e2e", selectcolor="#181825", activebackground="#1e1e2e",
-                                  activeforeground="#cdd6f4")
-        audio_cb.pack(anchor="w")
-
-        # 5. Rotation
-        rot_row = tk.Frame(card, bg="#1e1e2e")
-        rot_row.pack(fill="x", pady=(4, 12))
-        
-        rot_lbl = tk.Label(rot_row, text="Orientamento Schermo:", font=("Segoe UI", 9),
-                           fg="#cdd6f4", bg="#1e1e2e")
-        rot_lbl.pack(side="left", padx=(0, 10))
-        
-        self.rot_var = tk.StringVar(value=self.config.get("rotation", "0"))
-        rot_cb = ttk.Combobox(rot_row, textvariable=self.rot_var, state="readonly", width=18,
-                              values=["Normale (0°)", "Ruota Destra (90°)", "Ruota Sinistra (90°)", "Capovolto (180°)"])
-        rot_val = self.config.get("rotation", "0")
-        if rot_val == "90R":
-            rot_cb.current(1)
-        elif rot_val == "90L":
-            rot_cb.current(2)
-        elif rot_val == "180":
-            rot_cb.current(3)
-        else:
-            rot_cb.current(0)
-        self.rot_combobox = rot_cb
-        rot_cb.pack(side="left")
-
-        # Save Button
-        save_btn = tk.Button(card, text="💾 Salva Impostazioni e Riavvia Ricevitore", font=("Segoe UI", 10, "bold"),
-                             bg="#89b4fa", fg="#11111b", activebackground="#b4befe", activeforeground="#11111b",
-                             relief="flat", pady=8, cursor="hand2", command=self.save_and_apply_settings)
-        save_btn.pack(fill="x", pady=(4, 0))
-
-    def _init_diagnostics_tab(self):
-        f = self.tab_frames["diagnostics"]
-        
-        card = tk.Frame(f, bg="#1e1e2e", padx=16, pady=12,
-                        highlightbackground="#313244", highlightthickness=1)
-        card.pack(fill="both", expand=True, pady=(6, 8))
-        
-        sec1_title = tk.Label(card, text="Stato Rete & Servizi:", font=("Segoe UI", 10, "bold"),
-                              fg="#89b4fa", bg="#1e1e2e")
-        sec1_title.pack(anchor="w")
-        
-        self.diag_ip = tk.Label(card, text=f"• Indirizzo IP Wi-Fi PC: {self.local_ip}",
-                                font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.diag_ip.pack(anchor="w", pady=2)
-        
-        self.diag_bonjour = tk.Label(card, text="• Servizio Apple Bonjour: Attivo e Rilevabile (mDNS)",
-                                     font=("Segoe UI", 9), fg="#a6e3a1", bg="#1e1e2e")
-        self.diag_bonjour.pack(anchor="w", pady=2)
-        
-        self.diag_engine = tk.Label(card, text="• Motore Mirroring: UxPlay 2.0 (Direct3D 11 / WASAPI)",
-                                    font=("Segoe UI", 9), fg="#cdd6f4", bg="#1e1e2e")
-        self.diag_engine.pack(anchor="w", pady=2)
-
-        sec2_title = tk.Label(card, text="\nGaranzie di Sicurezza & Pulizia:", font=("Segoe UI", 10, "bold"),
-                              fg="#89b4fa", bg="#1e1e2e")
-        sec2_title.pack(anchor="w")
-        
-        clean_info = (
-            "✔ Nessun avvio automatico con Windows.\n"
-            "✔ Nessun servizio o demone nascosto in background.\n"
-            "✔ Chiusura forzata automatica al 100% via Windows Job Object.\n"
-            "✔ Nessuna filigrana, nessun abbonamento, nessun limite di tempo."
+        self.restart_btn = tk.Button(
+            actions_frame, text="⟳ Restart", font=("Segoe UI", 9, "bold"),
+            bg="#ffffff", fg="#3b82f6", relief="flat", bd=0, padx=12, pady=3,
+            cursor="hand2", highlightbackground="#e2e8f0", highlightthickness=1,
+            command=self.restart_engine
         )
-        clean_lbl = tk.Label(card, text=clean_info, font=("Segoe UI", 9),
-                             fg="#a6adc8", bg="#1e1e2e", justify="left")
-        clean_lbl.pack(anchor="w", pady=2)
+        self.restart_btn.pack(side="left", pady=6)
 
-        sec3_title = tk.Label(card, text="\nProgetto Open-Source:", font=("Segoe UI", 10, "bold"),
-                              fg="#89b4fa", bg="#1e1e2e")
-        sec3_title.pack(anchor="w")
+    def _build_main_views(self):
+        # Master container for central screen
+        self.content_container = tk.Frame(self.root, bg="#eef2ff")
+        self.content_container.pack(fill="both", expand=True)
         
-        gh_btn = tk.Button(card, text="🌐 Apri Repository Ufficiale su GitHub", font=("Segoe UI", 9, "bold"),
-                           bg="#313244", fg="#89b4fa", activebackground="#45475a", activeforeground="#89b4fa",
-                           relief="flat", pady=6, cursor="hand2",
-                           command=lambda: webbrowser.open(GITHUB_REPO_URL))
-        gh_btn.pack(fill="x", pady=(6, 0))
+        # View 1: Standby Frame (replicates uploaded screenshot)
+        self.standby_frame = tk.Frame(self.content_container, bg="#eef2ff")
+        self.standby_frame.pack(fill="both", expand=True)
+        
+        # Background gradient canvas
+        self.bg_canvas = tk.Canvas(self.standby_frame, bg="#eef2ff", highlightthickness=0)
+        self.bg_canvas.pack(fill="both", expand=True)
+        self.bg_canvas.bind("<Configure>", self._draw_gradient_background)
+        
+        # Center two-column layout wrapper inside canvas
+        self.center_wrapper = tk.Frame(self.bg_canvas, bg="#ffffff")
+        self.canvas_window_id = self.bg_canvas.create_window(0, 0, window=self.center_wrapper, anchor="center")
+        self.bg_canvas.bind("<Configure>", self._center_standby_layout, add="+")
+        
+        self._build_standby_columns()
 
-    def _build_status_footer(self):
-        footer_frame = tk.Frame(self.root, bg="#181825", padx=20, pady=10)
-        footer_frame.pack(fill="x", side="bottom")
-        
-        close_btn = tk.Button(footer_frame, text="⏹ Termina e Chiudi Tutto", font=("Segoe UI", 10, "bold"),
-                              bg="#f38ba8", fg="#11111b", activebackground="#eba0ac",
-                              relief="flat", pady=8, cursor="hand2", command=self.on_close)
-        close_btn.pack(fill="x")
+        # View 2: Video Container (holds embedded UxPlay streaming window)
+        self.video_container = tk.Frame(self.content_container, bg="#000000")
+        self.video_container.bind("<Configure>", self._on_video_container_resize)
+        self.video_container.bind("<Double-Button-1>", lambda e: self.toggle_fullscreen())
 
-    def generate_random_pin(self):
-        pin = f"{random.randint(1000, 9999)}"
-        self.pin_entry.delete(0, tk.END)
-        self.pin_entry.insert(0, pin)
-        self.pin_enabled_var.set(True)
-
-    def save_and_apply_settings(self):
-        # 1. Device name (sanitize spaces and illegal chars for mDNS)
-        raw_name = self.name_entry.get().strip()
-        clean_name = raw_name.replace(" ", "-").replace('"', '').replace("'", "")
-        clean_name = "".join(c for c in clean_name if c.isalnum() or c in ("-", "_")).strip()
-        if not clean_name:
-            clean_name = "AirPlay4979"
-        self.config["device_name"] = clean_name
-        self.name_entry.delete(0, tk.END)
-        self.name_entry.insert(0, clean_name)
+    def _draw_gradient_background(self, event):
+        w = max(event.width, 200)
+        h = max(event.height, 200)
         
-        # 2. PIN
-        pin_enabled = self.pin_enabled_var.get()
-        pin_code = self.pin_entry.get().strip()
-        if pin_enabled:
-            if not (len(pin_code) == 4 and pin_code.isdigit()):
-                messagebox.showerror("PIN non valido", "Il codice PIN deve essere composto esattamente da 4 cifre numeriche (es. 1234).")
-                return
-        self.config["pin_enabled"] = pin_enabled
-        self.config["pin_code"] = pin_code
-        
-        # 3. Resolution
-        res_sel = self.res_var.get()
-        if "720p" in res_sel:
-            self.config["resolution"] = "720p"
-        elif "4K" in res_sel:
-            self.config["resolution"] = "4K"
-        else:
-            self.config["resolution"] = "1080p"
+        # Generate soft pastel gradient image (lavender to soft sky blue)
+        try:
+            base = Image.new('RGB', (w, h), '#eef2ff')
+            top = Image.new('RGB', (w, h), '#ede9fe')
+            mask = Image.new('L', (w, h))
+            mask_data = []
+            for y in range(h):
+                row_val = int(255 * (1.0 - (y / h * 0.7)))
+                mask_data.extend([row_val] * w)
+            mask.putdata(mask_data)
+            base.paste(top, (0, 0), mask)
             
-        # 4. FPS
-        fps_sel = self.fps_var.get()
-        self.config["fps"] = "30" if "30" in fps_sel else "60"
+            self.gradient_img = ImageTk.PhotoImage(base)
+            self.bg_canvas.delete("gradient_bg")
+            self.bg_canvas.create_image(0, 0, image=self.gradient_img, anchor="nw", tags="gradient_bg")
+            self.bg_canvas.tag_lower("gradient_bg")
+        except Exception:
+            pass
+
+    def _center_standby_layout(self, event):
+        self.bg_canvas.coords(self.canvas_window_id, event.width // 2, event.height // 2)
+
+    def _build_standby_columns(self):
+        self.center_wrapper.configure(bg="#f8fafc")
         
-        # 5. Low latency & Display
-        self.config["low_latency"] = self.low_latency_var.get()
-        self.config["fullscreen"] = self.fullscreen_var.get()
-        self.config["enable_audio"] = self.audio_var.get()
+        # Outer card frame with soft styling
+        main_box = tk.Frame(self.center_wrapper, bg="#f8fafc", padx=10, pady=10)
+        main_box.pack()
         
-        # 6. Rotation
-        rot_sel = self.rot_combobox.get()
-        if "Destra" in rot_sel:
-            self.config["rotation"] = "90R"
-        elif "Sinistra" in rot_sel:
-            self.config["rotation"] = "90L"
-        elif "180" in rot_sel:
-            self.config["rotation"] = "180"
-        else:
-            self.config["rotation"] = "0"
-            
-        # Save to disk
-        save_config(self.config)
-        
-        # Update overview labels
-        self.status_details.config(text=f"Nome AirPlay: {self.config.get('device_name')}  |  IP: {self.local_ip}")
-        self.ov_res_lbl.config(text=f"• Risoluzione: {self.config.get('resolution')} @ {self.config.get('fps')} FPS")
-        pin_text = f"Attivo ({self.config.get('pin_code')})" if self.config.get("pin_enabled") else "Disattivato (Libero)"
-        self.ov_pin_lbl.config(text=f"• Protezione PIN: {pin_text}")
-        lat_text = "Attiva (Zero-Lag)" if self.config.get("low_latency") else "Standard"
-        self.ov_lat_lbl.config(text=f"• Bassa Latenza: {lat_text}")
-        
-        steps = (
-            "1. Connetti iPhone e PC alla stessa rete Wi-Fi.\n"
-            "2. Apri il Centro di Controllo (scorri verso il basso dall'angolo in alto a destra).\n"
-            "3. Tocca l'icona 'Duplica schermo' (due rettangoli sovrapposti).\n"
-            f"4. Seleziona '{self.config.get('device_name')}' dalla lista."
+        cols = tk.Frame(main_box, bg="#f8fafc")
+        cols.pack()
+
+        # ==========================================
+        # LEFT COLUMN: QR Code Card & Wi-Fi Pill
+        # ==========================================
+        left_col = tk.Frame(cols, bg="#f8fafc", padx=25, pady=10)
+        left_col.pack(side="left", fill="both")
+
+        # White Card
+        qr_card = tk.Frame(left_col, bg="#ffffff", padx=26, pady=22,
+                           highlightbackground="#e2e8f0", highlightthickness=1)
+        qr_card.pack()
+
+        # Generate QR Code
+        qr = qrcode.QRCode(version=1, box_size=3, border=1)
+        qr.add_data(f"AirPlay://{self.config.get('device_name', 'Pc-dav')}@{self.local_ip}")
+        qr_img = qr.make_image(fill_color="#1e293b", back_color="white")
+        self.qr_photo = ImageTk.PhotoImage(qr_img)
+
+        qr_lbl = tk.Label(qr_card, image=self.qr_photo, bg="white")
+        qr_lbl.pack(pady=(0, 10))
+
+        qr_text = tk.Label(qr_card, text="Scan the QR code with your phone camera,\ndownload app & enjoy more features.",
+                           font=("Segoe UI", 9), fg="#64748b", bg="white", justify="center")
+        qr_text.pack(pady=(0, 12))
+
+        # Store / Protocol Badges
+        badge_row = tk.Frame(qr_card, bg="white")
+        badge_row.pack()
+
+        appstore_badge = tk.Label(badge_row, text="🍎 App Store", font=("Segoe UI", 8, "bold"),
+                                  fg="#ffffff", bg="#000000", padx=10, pady=4)
+        appstore_badge.pack(side="left", padx=(0, 8))
+
+        googleplay_badge = tk.Label(badge_row, text="▶ Google Play", font=("Segoe UI", 8, "bold"),
+                                    fg="#ffffff", bg="#0f172a", padx=10, pady=4)
+        googleplay_badge.pack(side="left")
+
+        # Wi-Fi Pill Banner
+        wifi_pill = tk.Frame(left_col, bg="#e0e7ff", padx=14, pady=8,
+                             highlightbackground="#c7d2fe", highlightthickness=1)
+        wifi_pill.pack(fill="x", pady=(14, 0))
+
+        wifi_lbl = tk.Label(wifi_pill, text="📶  Make sure your phone & PC are on the same Wi-Fi",
+                            font=("Segoe UI", 9, "bold"), fg="#3730a3", bg="#e0e7ff")
+        wifi_lbl.pack()
+
+        # ==========================================
+        # RIGHT COLUMN: AirPlay Monitor & Loading
+        # ==========================================
+        right_col = tk.Frame(cols, bg="#f8fafc", padx=35, pady=20)
+        right_col.pack(side="left", fill="both")
+
+        # Monitor Icon Canvas
+        self.monitor_canvas = tk.Canvas(right_col, width=170, height=120, bg="#f8fafc", highlightthickness=0)
+        self.monitor_canvas.pack(pady=(10, 8))
+        self._draw_airplay_monitor(self.monitor_canvas)
+
+        # Device Name Display (e.g. AirMirroring 【Pc-dav】)
+        self.device_title_lbl = tk.Label(
+            right_col,
+            text=f"AirMirroring 【{self.config.get('device_name', 'Pc-dav')}】",
+            font=("Segoe UI", 16, "bold"),
+            fg="#1e293b",
+            bg="#f8fafc"
         )
-        self.instr_text_lbl.config(text=steps)
+        self.device_title_lbl.pack(pady=(4, 6))
+
+        # Security PIN Badge (if active)
+        self.pin_display_lbl = tk.Label(right_col, text="", font=("Segoe UI", 11, "bold"),
+                                        fg="#d97706", bg="#fef3c7", padx=10, pady=3)
+        self._update_pin_display()
+
+        # Animated 4 Dots
+        self.dots_canvas = tk.Canvas(right_col, width=120, height=36, bg="#f8fafc", highlightthickness=0)
+        self.dots_canvas.pack(pady=(8, 4))
+
+        self.status_sub_lbl = tk.Label(right_col, text="In attesa di duplicazione schermo...",
+                                       font=("Segoe UI", 10), fg="#64748b", bg="#f8fafc")
+        self.status_sub_lbl.pack()
+
+    def _draw_airplay_monitor(self, c):
+        c.delete("all")
+        # Monitor bezel
+        c.create_rectangle(20, 15, 150, 95, outline="#1e293b", width=6, fill="#f8fafc")
+        # Monitor stand base
+        c.create_rectangle(65, 95, 105, 106, outline="#1e293b", fill="#1e293b")
+        c.create_line(45, 106, 125, 106, fill="#1e293b", width=6)
+        # Upward AirPlay triangle inside monitor
+        c.create_polygon(65, 85, 105, 85, 85, 45, fill="#1e293b", outline="#1e293b")
+
+    def _update_pin_display(self):
+        if self.config.get("pin_enabled", False):
+            self.pin_display_lbl.config(text=f"🔒 Codice PIN Richiesto: [ {self.config.get('pin_code', '1234')} ]")
+            self.pin_display_lbl.pack(pady=(0, 6))
+        else:
+            self.pin_display_lbl.pack_forget()
+
+    def _animate_dots_loop(self):
+        if not self.running:
+            return
+        colors = ["#06b6d4", "#3b82f6", "#8b5cf6", "#d946ef"]
+        self.dots_canvas.delete("dots")
         
-        # Restart engine
-        self.start_engine()
-        messagebox.showinfo("Impostazioni Salvate", "Le nuove impostazioni sono state salvate e il ricevitore AirPlay è stato riavviato!")
-        self.switch_tab("main")
+        # 4 circular dots
+        spacing = 24
+        start_x = 24
+        y = 18
+        for i in range(4):
+            idx = (i + self.dot_phase) % 4
+            c = colors[idx]
+            r = 6 if i == self.dot_phase % 4 else 5
+            x = start_x + i * spacing
+            self.dots_canvas.create_oval(x - r, y - r, x + r, y + r, fill=c, outline=c, tags="dots")
+            
+        self.dot_phase = (self.dot_phase + 1) % 4
+        self.root.after(350, self._animate_dots_loop)
+
+    def _build_footer(self):
+        self.footer = tk.Frame(self.root, bg="#f1f5f9", height=48, padx=18)
+        self.footer.pack(fill="x", side="bottom")
+        self.footer.pack_propagate(False)
+
+        # Left links
+        left_links = tk.Frame(self.footer, bg="#f1f5f9")
+        left_links.pack(side="left", fill="y", pady=6)
+
+        link1 = tk.Label(left_links, text="Can't find this receiver in the screen mirroring list?",
+                         font=("Segoe UI", 8, "underline"), fg="#2563eb", bg="#f1f5f9", cursor="hand2")
+        link1.pack(anchor="w")
+        link1.bind("<Button-1>", lambda e: self.show_troubleshooting_dialog())
+
+        link2 = tk.Label(left_links, text="Failed to connect to this receiver?",
+                         font=("Segoe UI", 8, "underline"), fg="#2563eb", bg="#f1f5f9", cursor="hand2")
+        link2.pack(anchor="w")
+        link2.bind("<Button-1>", lambda e: self.show_network_diagnosis())
+
+        # Center Floating Pill Dock
+        center_pill = tk.Frame(self.footer, bg="#ffffff", padx=16, pady=4,
+                               highlightbackground="#e2e8f0", highlightthickness=1)
+        center_pill.pack(side="left", expand=True)
+
+        pill_icon = tk.Label(center_pill, text="📲", font=("Segoe UI", 11), bg="white")
+        pill_icon.pack(side="left", padx=(0, 6))
+
+        self.pill_title = tk.Label(center_pill, text="AirMirroring", font=("Segoe UI", 9, "bold"),
+                                   fg="#1e293b", bg="white")
+        self.pill_title.pack(side="left")
+
+        # Right status & settings buttons
+        right_info = tk.Frame(self.footer, bg="#f1f5f9")
+        right_info.pack(side="right", fill="y", pady=8)
+
+        net_text = f"Network:{self.net_type}   IP:{self.local_ip}"
+        self.net_lbl = tk.Label(right_info, text=net_text, font=("Consolas", 8),
+                                fg="#2563eb", bg="#f1f5f9")
+        self.net_lbl.pack(side="left", padx=(0, 14))
+
+        fs_btn = tk.Button(right_info, text="⛶", font=("Segoe UI", 12),
+                           bg="#ffffff", fg="#475569", relief="flat", bd=0, padx=8, pady=0,
+                           cursor="hand2", highlightbackground="#e2e8f0", highlightthickness=1,
+                           command=self.toggle_fullscreen)
+        fs_btn.pack(side="left", padx=(0, 6))
+
+        settings_btn = tk.Button(right_info, text="⚙", font=("Segoe UI", 12),
+                                 bg="#ffffff", fg="#475569", relief="flat", bd=0, padx=8, pady=0,
+                                 cursor="hand2", highlightbackground="#e2e8f0", highlightthickness=1,
+                                 command=self.open_settings_dialog)
+        settings_btn.pack(side="left")
+
+    def _on_video_container_resize(self, event):
+        """Resizes the embedded Direct3D child window when parent container resizes."""
+        if self.embedded_video_hwnd and user32.IsWindow(self.embedded_video_hwnd):
+            user32.MoveWindow(self.embedded_video_hwnd, 0, 0, event.width, event.height, True)
+
+    def _embed_video_window(self, child_hwnd):
+        """Embeds UxPlay's Direct3D render window directly into video_container."""
+        self.embedded_video_hwnd = child_hwnd
+        container_hwnd = self.video_container.winfo_id()
+        
+        # Set container as parent window
+        user32.SetParent(child_hwnd, container_hwnd)
+        
+        # Remove borders, title bar and popup styles
+        GWL_STYLE = -16
+        WS_CAPTION = 0x00C00000
+        WS_THICKFRAME = 0x00040000
+        WS_BORDER = 0x00800000
+        WS_POPUP = 1 << 31
+        WS_CHILD = 1 << 30
+        WS_VISIBLE = 1 << 28
+        
+        style = user32.GetWindowLongW(child_hwnd, GWL_STYLE)
+        style = (style & ~(WS_CAPTION | WS_THICKFRAME | WS_BORDER | WS_POPUP)) | WS_CHILD | WS_VISIBLE
+        user32.SetWindowLongW(child_hwnd, GWL_STYLE, style)
+        
+        # Position child window
+        w = self.video_container.winfo_width()
+        h = self.video_container.winfo_height()
+        user32.MoveWindow(child_hwnd, 0, 0, w, h, True)
+
+    def switch_to_video_mode(self, client_ip):
+        """Switches from standby screen to embedded live video mirroring screen."""
+        self.standby_frame.pack_forget()
+        self.video_container.pack(fill="both", expand=True)
+        self.pill_title.config(text=f"Streaming: {client_ip}", fg="#16a34a")
+        self.status_sub_lbl.config(text=f"🟢 iPhone Connesso ({client_ip})", fg="#16a34a")
+        
+        # Auto fullscreen if configured
+        if self.config.get("fullscreen_auto", False) and not self.is_fullscreen:
+            self.toggle_fullscreen()
+
+    def switch_to_standby_mode(self):
+        """Switches back to standby screen with QR code and device info."""
+        self.embedded_video_hwnd = None
+        self.video_container.pack_forget()
+        self.standby_frame.pack(fill="both", expand=True)
+        self.pill_title.config(text="AirMirroring", fg="#1e293b")
+        self.status_sub_lbl.config(text="In attesa di duplicazione schermo...", fg="#64748b")
+        if self.is_fullscreen and self.config.get("fullscreen_auto", False):
+            self.exit_fullscreen()
+
+    def toggle_fullscreen(self):
+        self.is_fullscreen = not self.is_fullscreen
+        self.root.attributes("-fullscreen", self.is_fullscreen)
+        if self.is_fullscreen:
+            self.top_bar.pack_forget()
+            self.footer.pack_forget()
+        else:
+            self.top_bar.pack(fill="x", side="top", before=self.content_container)
+            self.footer.pack(fill="x", side="bottom")
+
+    def exit_fullscreen(self):
+        if self.is_fullscreen:
+            self.toggle_fullscreen()
 
     def start_engine(self):
         self.stop_engine()
@@ -706,20 +625,20 @@ class ModernAirPlayApp:
                     except Exception:
                         pass
                 
-                # Brief check to ensure engine bound successfully to network ports
                 time.sleep(0.3)
                 if self.engine_proc.poll() is not None:
                     code = self.engine_proc.poll()
-                    self.set_ui_status("error", f"Arresto inaspettato (Codice: {code})")
+                    self.status_sub_lbl.config(text=f"Errore Motore (Codice {code})", fg="#dc2626")
                 else:
-                    self.set_ui_status("listening")
+                    self.status_sub_lbl.config(text="In attesa di duplicazione schermo...", fg="#64748b")
             except Exception as e:
-                self.set_ui_status("error", str(e))
+                self.status_sub_lbl.config(text=f"Errore avvio: {e}", fg="#dc2626")
         else:
-            self.set_ui_status("error", "uxplay-windows.exe non trovato")
+            self.status_sub_lbl.config(text="uxplay-windows.exe non trovato", fg="#dc2626")
 
     def restart_engine(self):
         self.start_engine()
+        messagebox.showinfo("AirMirroring", "Ricevitore AirPlay riavviato con successo!")
 
     def stop_engine(self):
         if self.engine_proc:
@@ -735,43 +654,74 @@ class ModernAirPlayApp:
                                creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.run(["taskkill", "/F", "/IM", "uxplay-bluetooth-beacon.exe"],
                                creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(0.4)  # Ensure sockets are completely released
+                time.sleep(0.4)
             except Exception:
                 pass
 
-    def set_ui_status(self, status, detail=""):
-        if status == "connected":
-            self.status_dot.config(text="●", fg="#a6e3a1")
-            self.status_title.config(text="IN TRASMISSIONE (iPhone Connesso)", fg="#a6e3a1")
-            self.client_info_lbl.config(text=f"🟢 Dispositivo collegato: {detail} (Ricezione flusso video)", fg="#a6e3a1")
-            self.status_card.config(highlightbackground="#a6e3a1")
-        elif status == "listening":
-            self.status_dot.config(text="●", fg="#f9e2af")
-            self.status_title.config(text="IN ASCOLTO (Pronto alla connessione)", fg="#f9e2af")
-            self.client_info_lbl.config(text="Nessun dispositivo attualmente collegato. Apri 'Duplica schermo' su iPhone.", fg="#a6adc8")
-            self.status_card.config(highlightbackground="#313244")
-        elif status == "error":
-            self.status_dot.config(text="●", fg="#f38ba8")
-            self.status_title.config(text="ERRORE MOTORE", fg="#f38ba8")
-            self.client_info_lbl.config(text=f"🔴 {detail}", fg="#f38ba8")
-            self.status_card.config(highlightbackground="#f38ba8")
-
     def _connection_monitor_loop(self):
-        """Monitors network sockets to detect when iPhone starts/stops mirroring."""
+        """Monitors network sockets and embeds the video window when mirroring starts."""
         while self.running:
-            time.sleep(1.5)
+            time.sleep(1.0)
             if not self.running:
                 break
             if self.engine_proc and self.engine_proc.poll() is None:
                 client_ip = get_connected_client(self.engine_proc.pid)
-                if client_ip != self.connected_client_ip:
+                
+                # State changed: Client connected
+                if client_ip and not self.connected_client_ip:
                     self.connected_client_ip = client_ip
-                    if client_ip:
-                        self.root.after(0, lambda ip=client_ip: self.set_ui_status("connected", ip))
-                    else:
-                        self.root.after(0, lambda: self.set_ui_status("listening"))
+                    # Search for UxPlay's newly created render window
+                    for _ in range(8):
+                        hwnds = find_window_by_pid(self.engine_proc.pid)
+                        if hwnds:
+                            video_hwnd = hwnds[0]
+                            self.root.after(0, lambda h=video_hwnd, ip=client_ip: (
+                                self.switch_to_video_mode(ip),
+                                self._embed_video_window(h)
+                            ))
+                            break
+                        time.sleep(0.4)
+                
+                # State changed: Client disconnected
+                elif not client_ip and self.connected_client_ip:
+                    self.connected_client_ip = None
+                    self.root.after(0, self.switch_to_standby_mode)
+                    
             elif self.engine_proc and self.engine_proc.poll() is not None:
-                self.root.after(0, lambda: self.set_ui_status("error", "Processo terminato inaspettatamente"))
+                self.root.after(0, lambda: self.status_sub_lbl.config(
+                    text="Motore arrestato. Clicca Restart.", fg="#dc2626"))
+
+    def open_settings_dialog(self):
+        SettingsDialog(self)
+
+    def show_carplay_dialog(self):
+        messagebox.showinfo(
+            "Wireless CarPlay",
+            "La funzionalità Wireless CarPlay su PC Windows richiede un adattatore hardware USB compatibile o Bluetooth LE beacon attivo.\n\n"
+            "Il ricevitore Bluetooth integrato sta già trasmettendo il segnale beacon per accelerare il rilevamento dell'iPhone."
+        )
+
+    def show_troubleshooting_dialog(self):
+        msg = (
+            "Se non vedi il ricevitore nel Centro di Controllo dell'iPhone:\n\n"
+            "1. Verifica che iPhone e PC siano connessi esattamente alla STESSA rete Wi-Fi (stesso router).\n"
+            "2. Assicurati che l'opzione 'Isolamento AP / Client Isolation' sia DISATTIVATA nelle impostazioni del tuo router.\n"
+            "3. Controlla che il servizio Apple Bonjour sia attivo (puoi riavviarlo premendo Restart).\n"
+            "4. Se usi una VPN sull'iPhone o sul PC, disattivala temporaneamente."
+        )
+        messagebox.showinfo("Risoluzione Problemi Rilevamento", msg)
+
+    def show_network_diagnosis(self):
+        net, ip = get_network_info()
+        msg = (
+            f"Diagnostica di Rete:\n\n"
+            f"• Scheda attiva: {net}\n"
+            f"• Indirizzo IP locale: {ip}\n"
+            f"• Servizio Bonjour: Rilevato su porta 5353 (mDNS)\n"
+            f"• Porta streaming AirPlay: 7000 / Dinamica\n\n"
+            "Se il mirroring fallisce al momento della connessione, verifica che Windows Firewall non blocchi uxplay-windows.exe."
+        )
+        messagebox.showinfo("Stato Rete & Connessione", msg)
 
     def on_close(self):
         self.running = False
@@ -782,21 +732,284 @@ class ModernAirPlayApp:
             pass
         sys.exit(0)
 
-SINGLE_INSTANCE_MUTEX = "AirPlayReceiverWindows_SingleInstanceMutex_v1"
+
+class SettingsDialog(tk.Toplevel):
+    """Modern comprehensive settings dialog matching user requirements."""
+    def __init__(self, parent_app):
+        super().__init__(parent_app.root)
+        self.parent_app = parent_app
+        self.title("Impostazioni AirMirroring")
+        self.geometry("620x660")
+        self.resizable(False, False)
+        self.configure(bg="#f8fafc")
+        self.transient(parent_app.root)
+        self.grab_set()
+        
+        self.config = dict(parent_app.config)
+        
+        self._build_ui()
+
+    def _build_ui(self):
+        # Header
+        hdr = tk.Frame(self, bg="#ffffff", padx=20, pady=14,
+                       highlightbackground="#e2e8f0", highlightthickness=1)
+        hdr.pack(fill="x")
+        
+        t = tk.Label(hdr, text="⚙️ Impostazioni Mirroring & Funzioni Avanzate",
+                     font=("Segoe UI", 13, "bold"), fg="#1e293b", bg="white")
+        t.pack(anchor="w")
+        sub = tk.Label(hdr, text="Personalizza nome, sicurezza, qualità video, fluidità e audio.",
+                       font=("Segoe UI", 9), fg="#64748b", bg="white")
+        sub.pack(anchor="w", pady=(2, 0))
+
+        # Main scrollable/card container
+        body = tk.Frame(self, bg="#f8fafc", padx=20, pady=12)
+        body.pack(fill="both", expand=True)
+
+        # 1. Device Name Card
+        c1 = tk.LabelFrame(body, text=" 📱 Nome Ricevitore AirPlay ", font=("Segoe UI", 9, "bold"),
+                           bg="#ffffff", fg="#1e293b", padx=14, pady=8, highlightbackground="#e2e8f0")
+        c1.pack(fill="x", pady=(0, 8))
+
+        row1 = tk.Frame(c1, bg="white")
+        row1.pack(fill="x", pady=2)
+
+        self.name_entry = tk.Entry(row1, font=("Segoe UI", 10), bg="#f8fafc", fg="#1e293b",
+                                   relief="solid", bd=1)
+        self.name_entry.insert(0, self.config.get("device_name", "Pc-dav"))
+        self.name_entry.pack(side="left", fill="x", expand=True, padx=(0, 8), ipady=3)
+
+        default_btn = tk.Button(row1, text="Default", font=("Segoe UI", 8), bg="#f1f5f9", fg="#475569",
+                                relief="flat", padx=10, pady=2, cursor="hand2",
+                                command=lambda: (self.name_entry.delete(0, tk.END), self.name_entry.insert(0, "Pc-dav")))
+        default_btn.pack(side="right")
+
+        hint_name = tk.Label(c1, text="💡 Gli spazi sono convertiti automaticamente in '-' (es. Pc-dav) per mDNS Apple.",
+                             font=("Segoe UI", 8), fg="#64748b", bg="white")
+        hint_name.pack(anchor="w", pady=(3, 0))
+
+        # 2. Security & PIN Card
+        c2 = tk.LabelFrame(body, text=" 🔒 Sicurezza & Accesso PIN ", font=("Segoe UI", 9, "bold"),
+                           bg="#ffffff", fg="#1e293b", padx=14, pady=8, highlightbackground="#e2e8f0")
+        c2.pack(fill="x", pady=(0, 8))
+
+        row2 = tk.Frame(c2, bg="white")
+        row2.pack(fill="x", pady=2)
+
+        self.pin_var = tk.BooleanVar(value=self.config.get("pin_enabled", False))
+        pin_cb = tk.Checkbutton(row2, text="Richiedi PIN a 4 cifre per autorizzare la connessione",
+                                variable=self.pin_var, font=("Segoe UI", 9), fg="#1e293b", bg="white",
+                                activebackground="white")
+        pin_cb.pack(side="left")
+
+        self.pin_entry = tk.Entry(row2, font=("Segoe UI", 10, "bold"), width=6, bg="#f8fafc", fg="#d97706",
+                                  justify="center", relief="solid", bd=1)
+        self.pin_entry.insert(0, self.config.get("pin_code", "1234"))
+        self.pin_entry.pack(side="left", padx=(10, 8), ipady=2)
+
+        gen_pin_btn = tk.Button(row2, text="🎲 Genera PIN", font=("Segoe UI", 8), bg="#f1f5f9", fg="#475569",
+                                relief="flat", padx=8, pady=2, cursor="hand2", command=self.generate_pin)
+        gen_pin_btn.pack(side="left")
+
+        # 3. Video Quality & FPS Card
+        c3 = tk.LabelFrame(body, text=" ⚡ Risoluzione & Fluidità (FPS) ", font=("Segoe UI", 9, "bold"),
+                           bg="#ffffff", fg="#1e293b", padx=14, pady=8, highlightbackground="#e2e8f0")
+        c3.pack(fill="x", pady=(0, 8))
+
+        row3 = tk.Frame(c3, bg="white")
+        row3.pack(fill="x", pady=2)
+
+        lbl_res = tk.Label(row3, text="Risoluzione Display:", font=("Segoe UI", 9), fg="#475569", bg="white")
+        lbl_res.pack(side="left", padx=(0, 8))
+
+        self.res_var = tk.StringVar(value=self.config.get("resolution", "1080p"))
+        res_cb = ttk.Combobox(row3, textvariable=self.res_var, state="readonly", width=22,
+                              values=["1080p (Full HD - 1920x1080)",
+                                      "720p (Max Fluidità - 1280x720)",
+                                      "1440p (2K Quad HD - 2560x1440)",
+                                      "4K (Ultra HD - 3840x2160 H.265)"])
+        cur_res = self.config.get("resolution", "1080p")
+        if cur_res == "720p": res_cb.current(1)
+        elif cur_res == "1440p": res_cb.current(2)
+        elif cur_res == "4K": res_cb.current(3)
+        else: res_cb.current(0)
+        self.res_combobox = res_cb
+        res_cb.pack(side="left", padx=(0, 14))
+
+        lbl_fps = tk.Label(row3, text="Framerate:", font=("Segoe UI", 9), fg="#475569", bg="white")
+        lbl_fps.pack(side="left", padx=(0, 6))
+
+        self.fps_var = tk.StringVar(value=self.config.get("fps", "60"))
+        fps_cb = ttk.Combobox(row3, textvariable=self.fps_var, state="readonly", width=8,
+                              values=["60 FPS", "30 FPS"])
+        fps_cb.current(0 if self.config.get("fps") == "60" else 1)
+        self.fps_combobox = fps_cb
+        fps_cb.pack(side="left")
+
+        # 4. Latency & Audio Card
+        c4 = tk.LabelFrame(body, text=" ⚡ Latenza (Zero-Lag) & Gestione Audio ", font=("Segoe UI", 9, "bold"),
+                           bg="#ffffff", fg="#1e293b", padx=14, pady=8, highlightbackground="#e2e8f0")
+        c4.pack(fill="x", pady=(0, 8))
+
+        self.low_lat_var = tk.BooleanVar(value=self.config.get("low_latency", True))
+        lat_cb = tk.Checkbutton(c4, text="Modalità Bassa Latenza (-vsync no, rendering immediato senza buffer)",
+                                variable=self.low_lat_var, font=("Segoe UI", 9, "bold"), fg="#16a34a", bg="white",
+                                activebackground="white")
+        lat_cb.pack(anchor="w")
+
+        row4 = tk.Frame(c4, bg="white")
+        row4.pack(fill="x", pady=(4, 2))
+
+        lbl_alat = tk.Label(row4, text="Buffer Audio Reporting:", font=("Segoe UI", 9), fg="#475569", bg="white")
+        lbl_alat.pack(side="left", padx=(0, 8))
+
+        self.alat_var = tk.StringVar(value=self.config.get("audio_latency", "0.1"))
+        alat_cb = ttk.Combobox(row4, textvariable=self.alat_var, state="readonly", width=22,
+                               values=["100ms (Bassa Latenza)", "250ms (Bilanciato standard)", "500ms (Tollerante Wi-Fi)"])
+        cur_alat = self.config.get("audio_latency", "0.1")
+        if cur_alat == "0.25": alat_cb.current(1)
+        elif cur_alat == "0.5": alat_cb.current(2)
+        else: alat_cb.current(0)
+        self.alat_combobox = alat_cb
+        alat_cb.pack(side="left", padx=(0, 14))
+
+        self.audio_en_var = tk.BooleanVar(value=self.config.get("enable_audio", True))
+        audio_cb = tk.Checkbutton(row4, text="Abilita Audio PC", variable=self.audio_en_var,
+                                  font=("Segoe UI", 9), fg="#1e293b", bg="white", activebackground="white")
+        audio_cb.pack(side="left")
+
+        # 5. Display & Rotation Card
+        c5 = tk.LabelFrame(body, text=" 📺 Comportamento Schermo & Orientamento ", font=("Segoe UI", 9, "bold"),
+                           bg="#ffffff", fg="#1e293b", padx=14, pady=8, highlightbackground="#e2e8f0")
+        c5.pack(fill="x", pady=(0, 8))
+
+        row5 = tk.Frame(c5, bg="white")
+        row5.pack(fill="x", pady=2)
+
+        self.fs_auto_var = tk.BooleanVar(value=self.config.get("fullscreen_auto", False))
+        fs_auto_cb = tk.Checkbutton(row5, text="Schermo intero automatico all'avvio", variable=self.fs_auto_var,
+                                    font=("Segoe UI", 9), fg="#1e293b", bg="white", activebackground="white")
+        fs_auto_cb.pack(side="left", padx=(0, 14))
+
+        self.ontop_var = tk.BooleanVar(value=self.config.get("always_on_top", False))
+        ontop_cb = tk.Checkbutton(row5, text="Finestra sempre in primo piano", variable=self.ontop_var,
+                                  font=("Segoe UI", 9), fg="#1e293b", bg="white", activebackground="white")
+        ontop_cb.pack(side="left")
+
+        row5b = tk.Frame(c5, bg="white")
+        row5b.pack(fill="x", pady=(4, 2))
+
+        lbl_rot = tk.Label(row5b, text="Rotazione Display:", font=("Segoe UI", 9), fg="#475569", bg="white")
+        lbl_rot.pack(side="left", padx=(0, 8))
+
+        self.rot_var = tk.StringVar(value=self.config.get("rotation", "0"))
+        rot_cb = ttk.Combobox(row5b, textvariable=self.rot_var, state="readonly", width=22,
+                              values=["Normale (0°)", "Ruota Destra (90°)", "Ruota Sinistra (90°)", "Capovolto (180°)"])
+        cur_rot = self.config.get("rotation", "0")
+        if cur_rot == "90R": rot_cb.current(1)
+        elif cur_rot == "90L": rot_cb.current(2)
+        elif cur_rot == "180": rot_cb.current(3)
+        else: rot_cb.current(0)
+        self.rot_combobox = rot_cb
+        rot_cb.pack(side="left")
+
+        # Bottom Buttons
+        btn_box = tk.Frame(self, bg="#f8fafc", padx=20, pady=10)
+        btn_box.pack(fill="x", side="bottom")
+
+        save_btn = tk.Button(btn_box, text="💾 Salva Impostazioni & Riavvia Ricevitore",
+                             font=("Segoe UI", 10, "bold"), bg="#3b82f6", fg="#ffffff",
+                             relief="flat", padx=16, pady=8, cursor="hand2", command=self.save_settings)
+        save_btn.pack(side="right", padx=(8, 0))
+
+        cancel_btn = tk.Button(btn_box, text="Annulla", font=("Segoe UI", 9),
+                               bg="#e2e8f0", fg="#475569", relief="flat", padx=14, pady=8,
+                               cursor="hand2", command=self.destroy)
+        cancel_btn.pack(side="right")
+
+    def generate_pin(self):
+        pin = f"{random.randint(1000, 9999)}"
+        self.pin_entry.delete(0, tk.END)
+        self.pin_entry.insert(0, pin)
+        self.pin_var.set(True)
+
+    def save_settings(self):
+        # 1. Device name (sanitize spaces to '-' for mDNS compatibility)
+        raw_name = self.name_entry.get().strip()
+        clean_name = raw_name.replace(" ", "-").replace('"', '').replace("'", "")
+        clean_name = "".join(c for c in clean_name if c.isalnum() or c in ("-", "_")).strip()
+        if not clean_name:
+            clean_name = "Pc-dav"
+        self.config["device_name"] = clean_name
+        
+        # 2. PIN
+        pin_enabled = self.pin_var.get()
+        pin_code = self.pin_entry.get().strip()
+        if pin_enabled:
+            if not (len(pin_code) == 4 and pin_code.isdigit()):
+                messagebox.showerror("PIN non valido", "Il PIN deve essere composto esattamente da 4 cifre numeriche (es. 1234).")
+                return
+        self.config["pin_enabled"] = pin_enabled
+        self.config["pin_code"] = pin_code
+        
+        # 3. Resolution
+        res_sel = self.res_combobox.get()
+        if "720p" in res_sel: self.config["resolution"] = "720p"
+        elif "1440p" in res_sel: self.config["resolution"] = "1440p"
+        elif "4K" in res_sel: self.config["resolution"] = "4K"
+        else: self.config["resolution"] = "1080p"
+        
+        # 4. FPS
+        fps_sel = self.fps_combobox.get()
+        self.config["fps"] = "30" if "30" in fps_sel else "60"
+        
+        # 5. Latency & Audio
+        self.config["low_latency"] = self.low_lat_var.get()
+        alat_sel = self.alat_combobox.get()
+        if "250ms" in alat_sel: self.config["audio_latency"] = "0.25"
+        elif "500ms" in alat_sel: self.config["audio_latency"] = "0.5"
+        else: self.config["audio_latency"] = "0.1"
+        
+        self.config["enable_audio"] = self.audio_en_var.get()
+        
+        # 6. Display & Rotation
+        self.config["fullscreen_auto"] = self.fs_auto_var.get()
+        self.config["always_on_top"] = self.ontop_var.get()
+        self.parent_app.root.attributes("-topmost", self.config["always_on_top"])
+        
+        rot_sel = self.rot_combobox.get()
+        if "Destra" in rot_sel: self.config["rotation"] = "90R"
+        elif "Sinistra" in rot_sel: self.config["rotation"] = "90L"
+        elif "180" in rot_sel: self.config["rotation"] = "180"
+        else: self.config["rotation"] = "0"
+        
+        # Save to disk
+        save_config(self.config)
+        self.parent_app.config = dict(self.config)
+        
+        # Update parent UI elements
+        self.parent_app.device_title_lbl.config(text=f"AirMirroring 【{self.config.get('device_name')}】")
+        self.parent_app._update_pin_display()
+        
+        # Restart engine with new settings
+        self.parent_app.start_engine()
+        self.destroy()
+        messagebox.showinfo("Impostazioni Salvate", "Le nuove impostazioni sono state salvate e il ricevitore è stato riavviato!")
+
 
 def main():
     ERROR_ALREADY_EXISTS = 183
-    mutex = ctypes.windll.kernel32.CreateMutexW(None, False, SINGLE_INSTANCE_MUTEX)
-    if ctypes.windll.kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
+    mutex = kernel32.CreateMutexW(None, False, SINGLE_INSTANCE_MUTEX)
+    if kernel32.GetLastError() == ERROR_ALREADY_EXISTS:
         focus_existing_window()
         sys.exit(0)
 
     root = tk.Tk()
-    app = ModernAirPlayApp(root)
+    app = AirMirroringApp(root)
     root.mainloop()
-    
+
     try:
-        ctypes.windll.kernel32.CloseHandle(mutex)
+        kernel32.CloseHandle(mutex)
     except Exception:
         pass
 
