@@ -1,1 +1,1 @@
--n AirPlay4979 -nh -fps 60 -vsync no -al 0.1
+-n AirPlay4979 -nh -s 1920x1080@60 -fps 60 -vsync no -al 0.1 -nofreeze
