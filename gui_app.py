@@ -531,7 +531,7 @@ class AirMirroringApp:
         if self.embedded_video_hwnd and user32.IsWindow(self.embedded_video_hwnd):
             user32.MoveWindow(self.embedded_video_hwnd, 0, 0, event.width, event.height, True)
 
-    def dock_video_window(self, child_hwnd):
+    def dock_video_window(self, child_hwnd, client_ip=None):
         """Immediately docks UxPlay render window into container with zero flicker."""
         try:
             if not user32.IsWindow(child_hwnd):
@@ -716,23 +716,22 @@ class AirMirroringApp:
 
             pid = self.engine_proc.pid
 
-            # Phase 1: Standby -> check for new render window or connected client
+            # Phase 1: Standby -> check for new render window
             if not self.embedded_video_hwnd:
                 hwnds = find_video_window(pid)
                 if hwnds:
                     video_hwnd = hwnds[0]
-                    # ZERO-FLICKER: Move off-screen immediately and hide before Windows can paint it!
-                    user32.SetWindowPos(video_hwnd, 0, -32000, -32000, 0, 0, 0x0001 | 0x0010)
-                    user32.ShowWindow(video_hwnd, 0)
-                    client_ip = get_connected_client(pid) or "iPhone"
+                    # Reparent immediately to container so it can never appear on desktop!
+                    container_hwnd = self.video_container.winfo_id()
+                    user32.SetParent(video_hwnd, container_hwnd)
                     self.embedded_video_hwnd = video_hwnd
+                    client_ip = get_connected_client(pid) or "iPhone"
                     self.connected_client_ip = client_ip
                     self.action_queue.put(("DOCK", (video_hwnd, client_ip)))
 
-            # Phase 2: Streaming -> check for client disconnect or window close
+            # Phase 2: Streaming -> check for window close
             else:
-                client_ip = get_connected_client(pid)
-                if not user32.IsWindow(self.embedded_video_hwnd) or (self.connected_client_ip and not client_ip):
+                if not user32.IsWindow(self.embedded_video_hwnd):
                     self.embedded_video_hwnd = None
                     self.connected_client_ip = None
                     self.action_queue.put(("UNDOCK", None))
