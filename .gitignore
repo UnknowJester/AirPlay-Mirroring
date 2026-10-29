@@ -1,0 +1,25 @@
+# Cartelle e file locali temporanei
+_old_prototype/
+build/
+dist/
+*.spec
+*.log
+out.log
+selftest.txt
+stderr.log
+stdout.log
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Ambienti di sviluppo e IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# File di sistema e scorciatoie locali
+Thumbs.db
+Desktop.ini
+*.lnk

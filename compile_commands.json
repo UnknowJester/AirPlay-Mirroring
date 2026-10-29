@@ -1,0 +1,260 @@
+[
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -ID:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -isystem D:/a/_temp/msys64/ucrt64/include/qt6 -isystem D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles\\uxplay-windows.dir\\uxplay-windows_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\uxplay-windows_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/uxplay-windows_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -ID:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -isystem D:/a/_temp/msys64/ucrt64/include/qt6 -isystem D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles\\uxplay-windows.dir\\src\\main.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\src\\main.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/src/main.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/src/main.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -ID:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -isystem D:/a/_temp/msys64/ucrt64/include/qt6 -isystem D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles\\uxplay-windows.dir\\src\\mainwindow.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\src\\mainwindow.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/src/mainwindow.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/src/mainwindow.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -ID:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -isystem D:/a/_temp/msys64/ucrt64/include/qt6 -isystem D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles\\uxplay-windows.dir\\src\\airplayworker.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\src\\airplayworker.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/src/airplayworker.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/src/airplayworker.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -ID:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -isystem D:/a/_temp/msys64/ucrt64/include/qt6 -isystem D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -isystem D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -O3 -DNDEBUG -std=gnu++17 -o CMakeFiles\\uxplay-windows.dir\\src\\mdns_responder.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\src\\mdns_responder.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/src/mdns_responder.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/src/mdns_responder.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\windres.exe -O coff -DMINGW_HAS_SECURE_API=1 -DOPENSSL_API_COMPAT=0x10101000L -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NEEDS_QMAIN -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DUNICODE -DWIN32 -DWIN64 -DWINVER=0x0A00 -D_ENABLE_EXTENDED_ALIGNED_STORAGE -D_UNICODE -D_WIN32_WINNT=0x0A00 -D_WIN64 -I D:/a/uxplay-windows/uxplay-windows/build/uxplay-windows_autogen/include -I D:/a/uxplay-windows/uxplay-windows/libuxplay -I D:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -I D:/a/_temp/msys64/ucrt64/include/orc-0.4 -I D:/a/_temp/msys64/ucrt64/include/glib-2.0 -I D:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -I D:/a/_temp/msys64/ucrt64/include/qt6/QtCore -I D:/a/_temp/msys64/ucrt64/include/qt6 -I D:/a/_temp/msys64/ucrt64/share/qt6/mkspecs/win32-g++ -I D:/a/_temp/msys64/ucrt64/include/qt6/QtWidgets -I D:/a/_temp/msys64/ucrt64/include/qt6/QtGui -I D:/a/_temp/msys64/ucrt64/include D:\\a\\uxplay-windows\\uxplay-windows\\src\\resources.rc CMakeFiles\\uxplay-windows.dir\\src\\resources.rc.obj",
+  "file": "D:/a/uxplay-windows/uxplay-windows/src/resources.rc",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/CMakeFiles/uxplay-windows.dir/src/resources.rc.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/uxplay_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\CMakeFiles\\uxplay.dir\\uxplay_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\libuxplay\\uxplay_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/uxplay_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/CMakeFiles/uxplay.dir/uxplay_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/uxplay_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\CMakeFiles\\uxplay.dir\\uxplay.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\uxplay.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/uxplay.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/CMakeFiles/uxplay.dir/uxplay.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/llhttp_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/. -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\lib\\llhttp\\CMakeFiles\\llhttp.dir\\llhttp_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\libuxplay\\lib\\llhttp\\llhttp_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/llhttp_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/CMakeFiles/llhttp.dir/llhttp_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/llhttp_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/. -O3 -DNDEBUG -o libuxplay\\lib\\llhttp\\CMakeFiles\\llhttp.dir\\api.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\llhttp\\api.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/api.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/CMakeFiles/llhttp.dir/api.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/llhttp_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/. -O3 -DNDEBUG -o libuxplay\\lib\\llhttp\\CMakeFiles\\llhttp.dir\\http.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\llhttp\\http.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/http.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/CMakeFiles/llhttp.dir/http.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/llhttp_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/. -O3 -DNDEBUG -o libuxplay\\lib\\llhttp\\CMakeFiles\\llhttp.dir\\llhttp.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\llhttp\\llhttp.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp/llhttp.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/llhttp/CMakeFiles/llhttp.dir/llhttp.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\playfair_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\libuxplay\\lib\\playfair\\playfair_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/playfair_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\hand_garble.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\playfair\\hand_garble.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/hand_garble.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/hand_garble.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\modified_md5.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\playfair\\modified_md5.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/modified_md5.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/modified_md5.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\omg_hax.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\playfair\\omg_hax.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/omg_hax.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/omg_hax.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\playfair.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\playfair\\playfair.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/playfair.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/playfair.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/playfair_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/. -O3 -DNDEBUG -o libuxplay\\lib\\playfair\\CMakeFiles\\playfair.dir\\sap_hash.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\playfair\\sap_hash.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair/sap_hash.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/playfair/CMakeFiles/playfair.dir/sap_hash.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\airplay_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\libuxplay\\lib\\airplay_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/airplay_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\airplay_video.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\airplay_video.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/airplay_video.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/airplay_video.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\byteutils.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\byteutils.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/byteutils.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/byteutils.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\compat.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\compat.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/compat.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/compat.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\crypto.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\crypto.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/crypto.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/crypto.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\dnssd.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\dnssd.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/dnssd.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/dnssd.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\fairplay_playfair.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\fairplay_playfair.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/fairplay_playfair.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/fairplay_playfair.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\http_request.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\http_request.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/http_request.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/http_request.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\http_response.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\http_response.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/http_response.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/http_response.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\httpd.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\httpd.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/httpd.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/httpd.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\logger.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\logger.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/logger.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/logger.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\mirror_buffer.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\mirror_buffer.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/mirror_buffer.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/mirror_buffer.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\netutils.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\netutils.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/netutils.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/netutils.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\pairing.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\pairing.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/pairing.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/pairing.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\raop.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\raop.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/raop.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/raop.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\raop_buffer.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\raop_buffer.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/raop_buffer.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/raop_buffer.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\raop_ntp.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\raop_ntp.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/raop_ntp.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/raop_ntp.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\raop_rtp.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\raop_rtp.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/raop_rtp.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/raop_rtp.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\raop_rtp_mirror.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\raop_rtp_mirror.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/raop_rtp_mirror.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/raop_rtp_mirror.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\srp.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\srp.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/srp.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/srp.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DNOHOLD -DOPENSSL_API_COMPAT=0x10101000L -DPLIST_210 -DPLIST_230 -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/airplay_autogen/include -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/playfair -ID:/a/uxplay-windows/uxplay-windows/libuxplay/lib/llhttp -I\"D:/a/uxplay-windows/uxplay-windows/Bonjour SDK/Include\" -DSTANDALONE -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS -DTARGET_POSIX -D_WIN32 -fPIC -DPIC -D_REENTRANT -D_LARGEFILE64_SOURCE -D_FILE_OFFSET_BITS=64 -Wall -O2  -O3 -DNDEBUG -o libuxplay\\lib\\CMakeFiles\\airplay.dir\\utils.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\lib\\utils.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/lib/utils.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/lib/CMakeFiles/airplay.dir/utils.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\c++.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/renderers_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -std=gnu++11 -o libuxplay\\renderers\\CMakeFiles\\renderers.dir\\renderers_autogen\\mocs_compilation.cpp.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\build\\libuxplay\\renderers\\renderers_autogen\\mocs_compilation.cpp",
+  "file": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/renderers_autogen/mocs_compilation.cpp",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/CMakeFiles/renderers.dir/renderers_autogen/mocs_compilation.cpp.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/renderers_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -o libuxplay\\renderers\\CMakeFiles\\renderers.dir\\audio_renderer.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\renderers\\audio_renderer.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/renderers/audio_renderer.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/CMakeFiles/renderers.dir/audio_renderer.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/renderers_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -o libuxplay\\renderers\\CMakeFiles\\renderers.dir\\video_renderer.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\renderers\\video_renderer.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/renderers/video_renderer.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/CMakeFiles/renderers.dir/video_renderer.c.obj"
+},
+{
+  "directory": "D:/a/uxplay-windows/uxplay-windows/build",
+  "command": "D:\\a\\_temp\\msys64\\ucrt64\\bin\\cc.exe -DOPENSSL_API_COMPAT=0x10101000L -ID:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/renderers_autogen/include -ID:/a/_temp/msys64/ucrt64/include/gstreamer-1.0 -ID:/a/_temp/msys64/ucrt64/include/orc-0.4 -ID:/a/_temp/msys64/ucrt64/include/glib-2.0 -ID:/a/_temp/msys64/ucrt64/lib/glib-2.0/include -O3 -DNDEBUG -o libuxplay\\renderers\\CMakeFiles\\renderers.dir\\mux_renderer.c.obj -c D:\\a\\uxplay-windows\\uxplay-windows\\libuxplay\\renderers\\mux_renderer.c",
+  "file": "D:/a/uxplay-windows/uxplay-windows/libuxplay/renderers/mux_renderer.c",
+  "output": "D:/a/uxplay-windows/uxplay-windows/build/libuxplay/renderers/CMakeFiles/renderers.dir/mux_renderer.c.obj"
+}
+]
