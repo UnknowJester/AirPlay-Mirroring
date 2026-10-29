@@ -119,14 +119,13 @@ def write_uxplay_arguments(config):
     """Generates the command arguments for UxPlay and updates all sync locations."""
     args = []
     
-    # Device name
-    dev_name = config.get("device_name", "AirPlay4979").strip()
-    if not dev_name:
-        dev_name = "AirPlay4979"
-    if " " in dev_name:
-        args.append(f'-n "{dev_name}"')
-    else:
-        args.append(f"-n {dev_name}")
+    # Device name (sanitize spaces to '-' and strip invalid chars for mDNS)
+    raw_name = str(config.get("device_name", "AirPlay4979")).strip()
+    clean_name = raw_name.replace(" ", "-").replace('"', '').replace("'", "")
+    clean_name = "".join(c for c in clean_name if c.isalnum() or c in ("-", "_")).strip()
+    if not clean_name:
+        clean_name = "AirPlay4979"
+    args.append(f"-n {clean_name}")
     args.append("-nh")  # Don't append hostname
     
     # PIN security
@@ -432,6 +431,10 @@ class ModernAirPlayApp:
                                    command=lambda: (self.name_entry.delete(0, tk.END), self.name_entry.insert(0, "AirPlay4979")))
         reset_name_btn.pack(side="right")
 
+        hint_lbl = tk.Label(card, text="💡 Gli spazi sono convertiti automaticamente in '-' (es. 'Pc-dav') per mDNS Apple.",
+                            font=("Segoe UI", 8), fg="#a6adc8", bg="#1e1e2e")
+        hint_lbl.pack(anchor="w", pady=(0, 6))
+
         # 2. PIN Security
         pin_lbl = tk.Label(card, text="Sicurezza & PIN di Accesso:", font=("Segoe UI", 9, "bold"),
                            fg="#89b4fa", bg="#1e1e2e")
@@ -604,11 +607,15 @@ class ModernAirPlayApp:
         self.pin_enabled_var.set(True)
 
     def save_and_apply_settings(self):
-        # 1. Device name
-        dev_name = self.name_entry.get().strip()
-        if not dev_name:
-            dev_name = "AirPlay4979"
-        self.config["device_name"] = dev_name
+        # 1. Device name (sanitize spaces and illegal chars for mDNS)
+        raw_name = self.name_entry.get().strip()
+        clean_name = raw_name.replace(" ", "-").replace('"', '').replace("'", "")
+        clean_name = "".join(c for c in clean_name if c.isalnum() or c in ("-", "_")).strip()
+        if not clean_name:
+            clean_name = "AirPlay4979"
+        self.config["device_name"] = clean_name
+        self.name_entry.delete(0, tk.END)
+        self.name_entry.insert(0, clean_name)
         
         # 2. PIN
         pin_enabled = self.pin_enabled_var.get()
@@ -698,7 +705,14 @@ class ModernAirPlayApp:
                         win32job.AssignProcessToJobObject(self.job, h_proc)
                     except Exception:
                         pass
-                self.set_ui_status("listening")
+                
+                # Brief check to ensure engine bound successfully to network ports
+                time.sleep(0.3)
+                if self.engine_proc.poll() is not None:
+                    code = self.engine_proc.poll()
+                    self.set_ui_status("error", f"Arresto inaspettato (Codice: {code})")
+                else:
+                    self.set_ui_status("listening")
             except Exception as e:
                 self.set_ui_status("error", str(e))
         else:
@@ -721,6 +735,7 @@ class ModernAirPlayApp:
                                creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 subprocess.run(["taskkill", "/F", "/IM", "uxplay-bluetooth-beacon.exe"],
                                creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                time.sleep(0.4)  # Ensure sockets are completely released
             except Exception:
                 pass
 
