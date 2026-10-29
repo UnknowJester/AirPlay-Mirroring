@@ -5,15 +5,16 @@ Permette di duplicare lo schermo di iPhone, iPad e Mac sul computer con audio si
 
 ---
 
-## ✨ Nuove Funzionalità (v1.2)
+## ✨ Nuove Funzionalità (v1.3)
 
-- 🎨 **Nuova Interfaccia Grafica Ispirata ad AirMirroring**:
-  - Sfondo sfumato pastello moderno (lavanda / azzurro cielo).
-  - Schermata di standby con **QR Code dinamico**, guida rapida, badge Apple e pillola di verifica Wi-Fi.
-  - Monitor grafico AirPlay ad alta definizione con nome personalizzabile `AirMirroring 【NomeDispositivo】` e animazione a 4 pallini colorati.
-  - Barra inferiore con diagnostica di rete in tempo reale (`Network: Wi-Fi/Ethernet`, `IP: Locale`), link di risoluzione problemi e tasto rapido impostazioni `⚙️`.
+- ⚡ **Zero-Flicker Native Docking (0ms Flash)**:
+  - Eliminato completamente qualsiasi sfarfallio o comparsa della vecchia finestra esterna sul desktop all'avvio della connessione.
+  - Utilizzo di hook nativo di sistema Win32 (`SetWinEventHook`) con intercettazione immediata a livello kernel/DWM (`SW_HIDE` e `SetParent` istantaneo): il video dello streaming compare direttamente e fluidamente nel contenitore dell'applicazione.
+- 🎨 **Schermata Standby Pulita ed Elegante**:
+  - Rimossi codici QR e badge store non necessari: AirPlay è nativo sui dispositivi Apple e non richiede app esterne.
+  - Nuova scheda centrale minimalista con monitor grafico AirPlay, nome ricevitore in evidenza, codice PIN dinamico (se attivo), animazione a 4 pallini e guida rapida di connessione in 3 passaggi chiari.
 - 📺 **Incorporamento Video Diretto (Single-Window All-in-One)**:
-  - **Niente finestre separate!** Il flusso di duplicazione dello schermo viene incorporato direttamente all'interno della finestra principale dell'applicazione (al posto della schermata di standby) tramite Win32 window docking.
+  - Il flusso di duplicazione dello schermo viene incorporato direttamente all'interno della finestra principale dell'applicazione (al posto della schermata di standby) tramite Win32 window docking.
   - Quando l'iPhone si connette, la visualizzazione passa fluidamente al video in streaming.
   - Quando il mirroring viene interrotto, l'app torna istantaneamente alla schermata di standby.
   - **Tasto Schermo Intero (`F` o `F11`)**: puoi ingrandire a tutto schermo borderless in qualsiasi momento e tornare indietro con `Esc`.
@@ -36,7 +37,7 @@ Permette di duplicare lo schermo di iPhone, iPad e Mac sul computer con audio si
 ## 🚀 Come avviare e usare l'app
 
 1. Fai doppio clic su **`AirPlay.exe`** (oppure sul collegamento Desktop **AirPlay**).
-2. Si aprirà la schermata principale di **AirMirroring** con il nome del tuo dispositivo e il codice QR.
+2. Si aprirà la schermata principale di **AirMirroring** con il nome del tuo ricevitore e la guida di connessione rapida.
 3. Prendi il tuo iPhone/iPad (connesso alla **stessa rete Wi-Fi** del computer):
    - Apri il **Centro di Controllo** (scorri verso il basso dall'angolo in alto a destra).
    - Tocca l'icona **Duplica schermo** (i due rettangoli sovrapposti).

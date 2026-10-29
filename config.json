@@ -2,10 +2,15 @@
     "device_name": "Pc-Dav",
     "pin_enabled": false,
     "pin_code": "1234",
-    "resolution": "1080p",
+    "resolution": "1440p",
     "fps": "60",
     "low_latency": true,
-    "fullscreen": false,
+    "audio_latency": "0.1",
+    "fullscreen_auto": false,
+    "always_on_top": false,
     "rotation": "0",
-    "enable_audio": true
+    "enable_audio": true,
+    "color_range_srgb": true,
+    "theme": "light",
+    "fullscreen": false
 }

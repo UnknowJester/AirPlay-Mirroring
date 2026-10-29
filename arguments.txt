@@ -1,1 +1,1 @@
--n Pc-Dav -nh -s 1920x1080@60 -fps 60 -vsync no -al 0.1 -srgb -taper -nofreeze
+-n Pc-Dav -nh -s 2560x1440@60 -fps 60 -vsync no -al 0.1 -srgb -taper -nofreeze

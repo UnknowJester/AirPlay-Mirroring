@@ -12,7 +12,6 @@ import webbrowser
 import ctypes
 from ctypes import wintypes
 from PIL import Image, ImageTk, ImageDraw
-import qrcode
 import psutil
 import win32job
 import win32api
@@ -31,6 +30,21 @@ SINGLE_INSTANCE_MUTEX = "AirPlayReceiverWindows_SingleInstanceMutex_v1"
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
+
+SetWindowLongPtrW = getattr(user32, 'SetWindowLongPtrW', user32.SetWindowLongW)
+SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
+SetWindowLongPtrW.restype = ctypes.c_ssize_t
+
+WINEVENTPROC = ctypes.WINFUNCTYPE(
+    None,
+    wintypes.HANDLE,
+    wintypes.DWORD,
+    wintypes.HWND,
+    wintypes.LONG,
+    wintypes.LONG,
+    wintypes.DWORD,
+    wintypes.DWORD
+)
 
 DEFAULT_CONFIG = {
     "device_name": "Pc-dav",
@@ -231,6 +245,8 @@ class AirMirroringApp:
         self.running = True
         self.connected_client_ip = None
         self.embedded_video_hwnd = None
+        self.win_event_hook = None
+        self.win_event_proc = None
         self.is_fullscreen = False
         self.dot_phase = 0
         
@@ -356,98 +372,74 @@ class AirMirroringApp:
         self.bg_canvas.coords(self.canvas_window_id, event.width // 2, event.height // 2)
 
     def _build_standby_columns(self):
-        self.center_wrapper.configure(bg="#f8fafc")
+        self.center_wrapper.configure(bg="#ffffff")
         
-        # Outer card frame with soft styling
-        main_box = tk.Frame(self.center_wrapper, bg="#f8fafc", padx=10, pady=10)
-        main_box.pack()
-        
-        cols = tk.Frame(main_box, bg="#f8fafc")
-        cols.pack()
-
-        # ==========================================
-        # LEFT COLUMN: QR Code Card & Wi-Fi Pill
-        # ==========================================
-        left_col = tk.Frame(cols, bg="#f8fafc", padx=25, pady=10)
-        left_col.pack(side="left", fill="both")
-
-        # White Card
-        qr_card = tk.Frame(left_col, bg="#ffffff", padx=26, pady=22,
-                           highlightbackground="#e2e8f0", highlightthickness=1)
-        qr_card.pack()
-
-        # Generate QR Code
-        qr = qrcode.QRCode(version=1, box_size=3, border=1)
-        qr.add_data(f"AirPlay://{self.config.get('device_name', 'Pc-dav')}@{self.local_ip}")
-        qr_img = qr.make_image(fill_color="#1e293b", back_color="white")
-        self.qr_photo = ImageTk.PhotoImage(qr_img)
-
-        qr_lbl = tk.Label(qr_card, image=self.qr_photo, bg="white")
-        qr_lbl.pack(pady=(0, 10))
-
-        qr_text = tk.Label(qr_card, text="Scan the QR code with your phone camera,\ndownload app & enjoy more features.",
-                           font=("Segoe UI", 9), fg="#64748b", bg="white", justify="center")
-        qr_text.pack(pady=(0, 12))
-
-        # Store / Protocol Badges
-        badge_row = tk.Frame(qr_card, bg="white")
-        badge_row.pack()
-
-        appstore_badge = tk.Label(badge_row, text="🍎 App Store", font=("Segoe UI", 8, "bold"),
-                                  fg="#ffffff", bg="#000000", padx=10, pady=4)
-        appstore_badge.pack(side="left", padx=(0, 8))
-
-        googleplay_badge = tk.Label(badge_row, text="▶ Google Play", font=("Segoe UI", 8, "bold"),
-                                    fg="#ffffff", bg="#0f172a", padx=10, pady=4)
-        googleplay_badge.pack(side="left")
-
-        # Wi-Fi Pill Banner
-        wifi_pill = tk.Frame(left_col, bg="#e0e7ff", padx=14, pady=8,
-                             highlightbackground="#c7d2fe", highlightthickness=1)
-        wifi_pill.pack(fill="x", pady=(14, 0))
-
-        wifi_lbl = tk.Label(wifi_pill, text="📶  Make sure your phone & PC are on the same Wi-Fi",
-                            font=("Segoe UI", 9, "bold"), fg="#3730a3", bg="#e0e7ff")
-        wifi_lbl.pack()
-
-        # ==========================================
-        # RIGHT COLUMN: AirPlay Monitor & Loading
-        # ==========================================
-        right_col = tk.Frame(cols, bg="#f8fafc", padx=35, pady=20)
-        right_col.pack(side="left", fill="both")
+        # Central modern card (clean, centered, zero clutter)
+        card = tk.Frame(self.center_wrapper, bg="#ffffff", padx=46, pady=24,
+                        highlightbackground="#cbd5e1", highlightthickness=1)
+        card.pack()
 
         # Monitor Icon Canvas
-        self.monitor_canvas = tk.Canvas(right_col, width=170, height=120, bg="#f8fafc", highlightthickness=0)
-        self.monitor_canvas.pack(pady=(10, 8))
+        self.monitor_canvas = tk.Canvas(card, width=170, height=115, bg="#ffffff", highlightthickness=0)
+        self.monitor_canvas.pack(pady=(4, 6))
         self._draw_airplay_monitor(self.monitor_canvas)
 
         # Device Name Display (e.g. AirMirroring 【Pc-dav】)
+        name = self.config.get("device_name", "Pc-dav")
         self.device_title_lbl = tk.Label(
-            right_col,
-            text=f"AirMirroring 【{self.config.get('device_name', 'Pc-dav')}】",
-            font=("Segoe UI", 16, "bold"),
-            fg="#1e293b",
-            bg="#f8fafc"
+            card,
+            text=f"AirMirroring 【{name}】",
+            font=("Segoe UI", 17, "bold"),
+            fg="#0f172a",
+            bg="#ffffff"
         )
-        self.device_title_lbl.pack(pady=(4, 6))
+        self.device_title_lbl.pack(pady=(2, 4))
 
         # Security PIN Badge (if active)
-        self.pin_display_lbl = tk.Label(right_col, text="", font=("Segoe UI", 11, "bold"),
-                                        fg="#d97706", bg="#fef3c7", padx=10, pady=3)
+        self.pin_display_lbl = tk.Label(card, text="", font=("Segoe UI", 10, "bold"),
+                                        fg="#b45309", bg="#fef3c7", padx=12, pady=3)
         self._update_pin_display()
 
         # Animated 4 Dots
-        self.dots_canvas = tk.Canvas(right_col, width=120, height=36, bg="#f8fafc", highlightthickness=0)
-        self.dots_canvas.pack(pady=(8, 4))
+        self.dots_canvas = tk.Canvas(card, width=120, height=30, bg="#ffffff", highlightthickness=0)
+        self.dots_canvas.pack(pady=(4, 2))
 
-        self.status_sub_lbl = tk.Label(right_col, text="In attesa di duplicazione schermo...",
-                                       font=("Segoe UI", 10), fg="#64748b", bg="#f8fafc")
-        self.status_sub_lbl.pack()
+        self.status_sub_lbl = tk.Label(card, text="In attesa di duplicazione schermo...",
+                                       font=("Segoe UI", 10), fg="#64748b", bg="#ffffff")
+        self.status_sub_lbl.pack(pady=(0, 14))
+
+        # Quick connection 3-step guide frame (replaces store and QR elements)
+        guide_box = tk.Frame(card, bg="#f8fafc", padx=22, pady=12,
+                             highlightbackground="#e2e8f0", highlightthickness=1)
+        guide_box.pack(fill="x")
+
+        guide_title = tk.Label(guide_box, text="Come connettere il tuo dispositivo:",
+                               font=("Segoe UI", 9, "bold"), fg="#334155", bg="#f8fafc")
+        guide_title.pack(anchor="w", pady=(0, 6))
+
+        s1_frame = tk.Frame(guide_box, bg="#f8fafc")
+        s1_frame.pack(fill="x", pady=2)
+        tk.Label(s1_frame, text="📶  Passo 1:", font=("Segoe UI", 9, "bold"), fg="#2563eb", bg="#f8fafc").pack(side="left")
+        s1_text = f" Connetti iPhone e PC alla stessa rete Wi-Fi ({self.net_type})"
+        tk.Label(s1_frame, text=s1_text, font=("Segoe UI", 9), fg="#475569", bg="#f8fafc").pack(side="left")
+
+        s2_frame = tk.Frame(guide_box, bg="#f8fafc")
+        s2_frame.pack(fill="x", pady=2)
+        tk.Label(s2_frame, text="👆  Passo 2:", font=("Segoe UI", 9, "bold"), fg="#2563eb", bg="#f8fafc").pack(side="left")
+        tk.Label(s2_frame, text=" Apri Centro di Controllo (scorri dall'angolo in alto a destra)",
+                 font=("Segoe UI", 9), fg="#475569", bg="#f8fafc").pack(side="left")
+
+        s3_frame = tk.Frame(guide_box, bg="#f8fafc")
+        s3_frame.pack(fill="x", pady=2)
+        tk.Label(s3_frame, text="📲  Passo 3:", font=("Segoe UI", 9, "bold"), fg="#2563eb", bg="#f8fafc").pack(side="left")
+        self.guide_step3_lbl = tk.Label(s3_frame, text=f' Tocca "Duplica schermo" e seleziona "{name}"',
+                                        font=("Segoe UI", 9, "bold"), fg="#1e293b", bg="#f8fafc")
+        self.guide_step3_lbl.pack(side="left")
 
     def _draw_airplay_monitor(self, c):
         c.delete("all")
         # Monitor bezel
-        c.create_rectangle(20, 15, 150, 95, outline="#1e293b", width=6, fill="#f8fafc")
+        c.create_rectangle(20, 15, 150, 95, outline="#1e293b", width=6, fill="#ffffff")
         # Monitor stand base
         c.create_rectangle(65, 95, 105, 106, outline="#1e293b", fill="#1e293b")
         c.create_line(45, 106, 125, 106, fill="#1e293b", width=6)
@@ -461,25 +453,37 @@ class AirMirroringApp:
         else:
             self.pin_display_lbl.pack_forget()
 
+    def _update_device_name_display(self):
+        name = self.config.get("device_name", "Pc-dav")
+        if hasattr(self, "device_title_lbl"):
+            self.device_title_lbl.config(text=f"AirMirroring 【{name}】")
+        if hasattr(self, "guide_step3_lbl"):
+            self.guide_step3_lbl.config(text=f' Tocca "Duplica schermo" e seleziona "{name}"')
+
     def _animate_dots_loop(self):
         if not self.running:
             return
         colors = ["#06b6d4", "#3b82f6", "#8b5cf6", "#d946ef"]
-        self.dots_canvas.delete("dots")
-        
-        # 4 circular dots
-        spacing = 24
-        start_x = 24
-        y = 18
-        for i in range(4):
-            idx = (i + self.dot_phase) % 4
-            c = colors[idx]
-            r = 6 if i == self.dot_phase % 4 else 5
-            x = start_x + i * spacing
-            self.dots_canvas.create_oval(x - r, y - r, x + r, y + r, fill=c, outline=c, tags="dots")
+        try:
+            self.dots_canvas.delete("dots")
+            spacing = 24
+            start_x = 24
+            y = 15
+            for i in range(4):
+                idx = (i + self.dot_phase) % 4
+                c = colors[idx]
+                r = 6 if i == self.dot_phase % 4 else 5
+                x = start_x + i * spacing
+                self.dots_canvas.create_oval(x - r, y - r, x + r, y + r, fill=c, outline=c, tags="dots")
+            self.dot_phase = (self.dot_phase + 1) % 4
+        except Exception:
+            return
             
-        self.dot_phase = (self.dot_phase + 1) % 4
-        self.root.after(350, self._animate_dots_loop)
+        if self.running:
+            try:
+                self.root.after(350, self._animate_dots_loop)
+            except Exception:
+                pass
 
     def _build_footer(self):
         self.footer = tk.Frame(self.root, bg="#f1f5f9", height=48, padx=18)
@@ -538,52 +542,79 @@ class AirMirroringApp:
         if self.embedded_video_hwnd and user32.IsWindow(self.embedded_video_hwnd):
             user32.MoveWindow(self.embedded_video_hwnd, 0, 0, event.width, event.height, True)
 
-    def _embed_video_window(self, child_hwnd):
-        """Embeds UxPlay's Direct3D render window directly into video_container."""
-        self.embedded_video_hwnd = child_hwnd
-        container_hwnd = self.video_container.winfo_id()
-        
-        # Set container as parent window
-        user32.SetParent(child_hwnd, container_hwnd)
-        
-        # Remove borders, title bar and popup styles
-        GWL_STYLE = -16
-        WS_CAPTION = 0x00C00000
-        WS_THICKFRAME = 0x00040000
-        WS_BORDER = 0x00800000
-        WS_POPUP = 1 << 31
-        WS_CHILD = 1 << 30
-        WS_VISIBLE = 1 << 28
-        
-        style = user32.GetWindowLongW(child_hwnd, GWL_STYLE)
-        style = (style & ~(WS_CAPTION | WS_THICKFRAME | WS_BORDER | WS_POPUP)) | WS_CHILD | WS_VISIBLE
-        user32.SetWindowLongW(child_hwnd, GWL_STYLE, style)
-        
-        # Position child window
-        w = self.video_container.winfo_width()
-        h = self.video_container.winfo_height()
-        user32.MoveWindow(child_hwnd, 0, 0, w, h, True)
+    def dock_video_window(self, child_hwnd):
+        """Immediately docks UxPlay render window into container with zero flicker."""
+        try:
+            if not user32.IsWindow(child_hwnd):
+                return
+
+            self.embedded_video_hwnd = child_hwnd
+
+            # 1. Switch UI views to video container
+            self.standby_frame.pack_forget()
+            self.video_container.pack(fill="both", expand=True)
+            self.root.update_idletasks()
+
+            # 2. Dock child window into video_container
+            container_hwnd = self.video_container.winfo_id()
+            user32.SetParent(child_hwnd, container_hwnd)
+
+            # 3. Strip window borders, captions and popup styles
+            GWL_STYLE = -16
+            WS_CAPTION = 0x00C00000
+            WS_THICKFRAME = 0x00040000
+            WS_BORDER = 0x00800000
+            WS_POPUP = 1 << 31
+            WS_CHILD = 1 << 30
+            WS_VISIBLE = 1 << 28
+
+            style = user32.GetWindowLongW(child_hwnd, GWL_STYLE)
+            style = (style & ~(WS_CAPTION | WS_THICKFRAME | WS_BORDER | WS_POPUP)) | WS_CHILD | WS_VISIBLE
+            val = ctypes.c_long(style).value
+            SetWindowLongPtrW(child_hwnd, GWL_STYLE, val)
+
+            # 4. Position and size to fit container exactly
+            w = max(self.video_container.winfo_width(), 100)
+            h = max(self.video_container.winfo_height(), 100)
+            user32.MoveWindow(child_hwnd, 0, 0, w, h, True)
+
+            # 5. Show inside the container
+            user32.ShowWindow(child_hwnd, 5)  # SW_SHOW
+
+            # 6. Update connection status
+            client_ip = get_connected_client(self.engine_proc.pid) if self.engine_proc else None
+            self.connected_client_ip = client_ip or "iPhone"
+            self.pill_title.config(text=f"Streaming: {self.connected_client_ip}", fg="#16a34a")
+            self.status_sub_lbl.config(text=f"🟢 iPhone Connesso ({self.connected_client_ip})", fg="#16a34a")
+
+            if self.config.get("fullscreen_auto", False) and not self.is_fullscreen:
+                self.toggle_fullscreen()
+        except Exception:
+            pass
 
     def switch_to_video_mode(self, client_ip):
-        """Switches from standby screen to embedded live video mirroring screen."""
+        """Switches to video mode (used for compatibility or manual trigger)."""
+        self.connected_client_ip = client_ip
         self.standby_frame.pack_forget()
         self.video_container.pack(fill="both", expand=True)
         self.pill_title.config(text=f"Streaming: {client_ip}", fg="#16a34a")
         self.status_sub_lbl.config(text=f"🟢 iPhone Connesso ({client_ip})", fg="#16a34a")
-        
-        # Auto fullscreen if configured
         if self.config.get("fullscreen_auto", False) and not self.is_fullscreen:
             self.toggle_fullscreen()
 
     def switch_to_standby_mode(self):
-        """Switches back to standby screen with QR code and device info."""
-        self.embedded_video_hwnd = None
-        self.video_container.pack_forget()
-        self.standby_frame.pack(fill="both", expand=True)
-        self.pill_title.config(text="AirMirroring", fg="#1e293b")
-        self.status_sub_lbl.config(text="In attesa di duplicazione schermo...", fg="#64748b")
-        if self.is_fullscreen and self.config.get("fullscreen_auto", False):
-            self.exit_fullscreen()
+        """Switches back to standby screen and resets UI state."""
+        try:
+            self.embedded_video_hwnd = None
+            self.connected_client_ip = None
+            self.video_container.pack_forget()
+            self.standby_frame.pack(fill="both", expand=True)
+            self.pill_title.config(text="AirMirroring", fg="#1e293b")
+            self.status_sub_lbl.config(text="In attesa di duplicazione schermo...", fg="#64748b")
+            if self.is_fullscreen and self.config.get("fullscreen_auto", False):
+                self.exit_fullscreen()
+        except Exception:
+            pass
 
     def toggle_fullscreen(self):
         self.is_fullscreen = not self.is_fullscreen
@@ -598,6 +629,53 @@ class AirMirroringApp:
     def exit_fullscreen(self):
         if self.is_fullscreen:
             self.toggle_fullscreen()
+
+    def _on_win_event(self, hHook, event, hwnd, idObject, idChild, dwThread, dwTime):
+        """Zero-flicker native hook callback catching child windows before display."""
+        try:
+            if idObject != 0 or idChild != 0 or not hwnd:
+                return
+            if not self.engine_proc or not self.running:
+                return
+
+            w_pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(w_pid))
+            if w_pid.value != self.engine_proc.pid:
+                return
+
+            try:
+                if hwnd == self.root.winfo_id():
+                    return
+            except Exception:
+                pass
+
+            GWL_STYLE = -16
+            style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+            if style & (1 << 30):  # WS_CHILD
+                return
+
+            cls_buf = ctypes.create_unicode_buffer(128)
+            user32.GetClassNameW(hwnd, cls_buf, 128)
+            cls_name = cls_buf.value
+            if any(x in cls_name for x in ("Observer", "TrayIcon", "IME", "Message", "Dummy", "Clipboard", "Internal", "Ole")):
+                return
+
+            if event == 0x8002:  # EVENT_OBJECT_SHOW
+                rect = wintypes.RECT()
+                user32.GetWindowRect(hwnd, ctypes.byref(rect))
+                w = rect.right - rect.left
+                h = rect.bottom - rect.top
+                if w > 80 and h > 80:
+                    # ZERO FLICKER GUARANTEE: Instantly hide window before desktop paints it
+                    user32.ShowWindow(hwnd, 0)
+                    if self.embedded_video_hwnd != hwnd:
+                        self.dock_video_window(hwnd)
+
+            elif event == 0x8001:  # EVENT_OBJECT_DESTROY
+                if self.embedded_video_hwnd == hwnd:
+                    self.switch_to_standby_mode()
+        except Exception:
+            pass
 
     def start_engine(self):
         self.stop_engine()
@@ -624,6 +702,14 @@ class AirMirroringApp:
                         win32job.AssignProcessToJobObject(self.job, h_proc)
                     except Exception:
                         pass
+
+                # Install zero-flicker native WinEvent hook
+                if sys.platform == "win32" and self.engine_proc and self.engine_proc.pid:
+                    self.win_event_proc = WINEVENTPROC(self._on_win_event)
+                    # 0x8001 = EVENT_OBJECT_DESTROY, 0x8002 = EVENT_OBJECT_SHOW
+                    self.win_event_hook = user32.SetWinEventHook(
+                        0x8001, 0x8002, None, self.win_event_proc, self.engine_proc.pid, 0, 0
+                    )
                 
                 time.sleep(0.3)
                 if self.engine_proc.poll() is not None:
@@ -641,6 +727,14 @@ class AirMirroringApp:
         messagebox.showinfo("AirMirroring", "Ricevitore AirPlay riavviato con successo!")
 
     def stop_engine(self):
+        if self.win_event_hook:
+            try:
+                user32.UnhookWinEvent(self.win_event_hook)
+            except Exception:
+                pass
+            self.win_event_hook = None
+            self.win_event_proc = None
+
         if self.engine_proc:
             try:
                 self.engine_proc.terminate()
@@ -651,15 +745,24 @@ class AirMirroringApp:
             try:
                 creation_flags = subprocess.CREATE_NO_WINDOW
                 subprocess.run(["taskkill", "/F", "/IM", "uxplay-windows.exe"],
-                               creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                               creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
                 subprocess.run(["taskkill", "/F", "/IM", "uxplay-bluetooth-beacon.exe"],
-                               creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                time.sleep(0.4)
+                               creationflags=creation_flags, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2)
+                time.sleep(0.3)
             except Exception:
                 pass
 
+    def safe_after(self, func, *args):
+        """Thread-safe UI callback scheduling that checks if app is still running."""
+        if not self.running:
+            return
+        try:
+            self.root.after(0, func, *args)
+        except Exception:
+            pass
+
     def _connection_monitor_loop(self):
-        """Monitors network sockets and embeds the video window when mirroring starts."""
+        """Monitors network sockets and window states as safety fallback."""
         while self.running:
             time.sleep(1.0)
             if not self.running:
@@ -667,28 +770,21 @@ class AirMirroringApp:
             if self.engine_proc and self.engine_proc.poll() is None:
                 client_ip = get_connected_client(self.engine_proc.pid)
                 
-                # State changed: Client connected
-                if client_ip and not self.connected_client_ip:
-                    self.connected_client_ip = client_ip
-                    # Search for UxPlay's newly created render window
-                    for _ in range(8):
-                        hwnds = find_window_by_pid(self.engine_proc.pid)
-                        if hwnds:
-                            video_hwnd = hwnds[0]
-                            self.root.after(0, lambda h=video_hwnd, ip=client_ip: (
-                                self.switch_to_video_mode(ip),
-                                self._embed_video_window(h)
-                            ))
-                            break
-                        time.sleep(0.4)
-                
-                # State changed: Client disconnected
-                elif not client_ip and self.connected_client_ip:
+                # Check for disconnection
+                if self.connected_client_ip and not client_ip:
                     self.connected_client_ip = None
-                    self.root.after(0, self.switch_to_standby_mode)
+                    self.safe_after(self.switch_to_standby_mode)
+                elif self.embedded_video_hwnd and not user32.IsWindow(self.embedded_video_hwnd):
+                    self.safe_after(self.switch_to_standby_mode)
+                # Fallback: if client connected but hook didn't capture window yet
+                elif client_ip and not self.embedded_video_hwnd:
+                    hwnds = find_window_by_pid(self.engine_proc.pid)
+                    if hwnds:
+                        video_hwnd = hwnds[0]
+                        self.safe_after(lambda h=video_hwnd: self.dock_video_window(h))
                     
             elif self.engine_proc and self.engine_proc.poll() is not None:
-                self.root.after(0, lambda: self.status_sub_lbl.config(
+                self.safe_after(lambda: self.status_sub_lbl.config(
                     text="Motore arrestato. Clicca Restart.", fg="#dc2626"))
 
     def open_settings_dialog(self):
@@ -988,7 +1084,7 @@ class SettingsDialog(tk.Toplevel):
         self.parent_app.config = dict(self.config)
         
         # Update parent UI elements
-        self.parent_app.device_title_lbl.config(text=f"AirMirroring 【{self.config.get('device_name')}】")
+        self.parent_app._update_device_name_display()
         self.parent_app._update_pin_display()
         
         # Restart engine with new settings
