@@ -7,6 +7,7 @@ import sys
 import json
 import random
 import threading
+import queue
 import time
 import webbrowser
 import ctypes
@@ -34,17 +35,6 @@ kernel32 = ctypes.windll.kernel32
 SetWindowLongPtrW = getattr(user32, 'SetWindowLongPtrW', user32.SetWindowLongW)
 SetWindowLongPtrW.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_ssize_t]
 SetWindowLongPtrW.restype = ctypes.c_ssize_t
-
-WINEVENTPROC = ctypes.WINFUNCTYPE(
-    None,
-    wintypes.HANDLE,
-    wintypes.DWORD,
-    wintypes.HWND,
-    wintypes.LONG,
-    wintypes.LONG,
-    wintypes.DWORD,
-    wintypes.DWORD
-)
 
 DEFAULT_CONFIG = {
     "device_name": "Pc-dav",
@@ -192,25 +182,24 @@ def write_uxplay_arguments(config):
         except Exception:
             pass
 
-def find_window_by_pid(pid):
-    """Finds visible rendering window belonging to the engine process."""
-    hwnds = []
-    def enum_cb(hwnd, lparam):
-        if user32.IsWindow(hwnd) and user32.IsWindowVisible(hwnd):
+def find_video_window(pid):
+    """Finds UxPlay's video render window, ignoring Qt internal background/dummy windows."""
+    found = []
+    def enum_cb(h, lp):
+        if user32.IsWindow(h):
             w_pid = wintypes.DWORD()
-            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(w_pid))
+            user32.GetWindowThreadProcessId(h, ctypes.byref(w_pid))
             if w_pid.value == pid:
-                rect = wintypes.RECT()
-                user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                w = rect.right - rect.left
-                h = rect.bottom - rect.top
-                if w > 80 and h > 80:
-                    hwnds.append(hwnd)
+                cls_buf = ctypes.create_unicode_buffer(128)
+                user32.GetClassNameW(h, cls_buf, 128)
+                cls_name = cls_buf.value
+                # Exclude Qt internal observer/message/dummy windows
+                if not any(x in cls_name for x in ("Observer", "TrayIcon", "IME", "Message", "Dummy", "Clipboard", "Internal", "Ole")):
+                    found.append(h)
         return True
-    
     WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, wintypes.HWND, wintypes.LPARAM)
     user32.EnumWindows(WNDENUMPROC(enum_cb), 0)
-    return hwnds
+    return found
 
 def get_connected_client(pid):
     """Detects active remote TCP connection to the UxPlay process."""
@@ -243,10 +232,9 @@ class AirMirroringApp:
         self.engine_proc = None
         self.job = None
         self.running = True
+        self.action_queue = queue.Queue()
         self.connected_client_ip = None
         self.embedded_video_hwnd = None
-        self.win_event_hook = None
-        self.win_event_proc = None
         self.is_fullscreen = False
         self.dot_phase = 0
         
@@ -277,7 +265,8 @@ class AirMirroringApp:
         # Start engine
         self.start_engine()
         
-        # Start animations and monitor loops
+        # Start animations, queue processing and monitor loops
+        self._process_queue_loop()
         self._animate_dots_loop()
         self.monitor_thread = threading.Thread(target=self._connection_monitor_loop, daemon=True)
         self.monitor_thread.start()
@@ -549,6 +538,8 @@ class AirMirroringApp:
                 return
 
             self.embedded_video_hwnd = child_hwnd
+            if client_ip:
+                self.connected_client_ip = client_ip
 
             # 1. Switch UI views to video container
             self.standby_frame.pack_forget()
@@ -582,10 +573,9 @@ class AirMirroringApp:
             user32.ShowWindow(child_hwnd, 5)  # SW_SHOW
 
             # 6. Update connection status
-            client_ip = get_connected_client(self.engine_proc.pid) if self.engine_proc else None
-            self.connected_client_ip = client_ip or "iPhone"
-            self.pill_title.config(text=f"Streaming: {self.connected_client_ip}", fg="#16a34a")
-            self.status_sub_lbl.config(text=f"🟢 iPhone Connesso ({self.connected_client_ip})", fg="#16a34a")
+            display_ip = self.connected_client_ip or "iPhone"
+            self.pill_title.config(text=f"Streaming: {display_ip}", fg="#16a34a")
+            self.status_sub_lbl.config(text=f"🟢 iPhone Connesso ({display_ip})", fg="#16a34a")
 
             if self.config.get("fullscreen_auto", False) and not self.is_fullscreen:
                 self.toggle_fullscreen()
@@ -630,52 +620,31 @@ class AirMirroringApp:
         if self.is_fullscreen:
             self.toggle_fullscreen()
 
-    def _on_win_event(self, hHook, event, hwnd, idObject, idChild, dwThread, dwTime):
-        """Zero-flicker native hook callback catching child windows before display."""
+    def _process_queue_loop(self):
+        """Processes thread-safe actions dispatched from the background monitor."""
+        if not self.running:
+            return
         try:
-            if idObject != 0 or idChild != 0 or not hwnd:
-                return
-            if not self.engine_proc or not self.running:
-                return
-
-            w_pid = wintypes.DWORD()
-            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(w_pid))
-            if w_pid.value != self.engine_proc.pid:
-                return
-
-            try:
-                if hwnd == self.root.winfo_id():
-                    return
-            except Exception:
-                pass
-
-            GWL_STYLE = -16
-            style = user32.GetWindowLongW(hwnd, GWL_STYLE)
-            if style & (1 << 30):  # WS_CHILD
-                return
-
-            cls_buf = ctypes.create_unicode_buffer(128)
-            user32.GetClassNameW(hwnd, cls_buf, 128)
-            cls_name = cls_buf.value
-            if any(x in cls_name for x in ("Observer", "TrayIcon", "IME", "Message", "Dummy", "Clipboard", "Internal", "Ole")):
-                return
-
-            if event == 0x8002:  # EVENT_OBJECT_SHOW
-                rect = wintypes.RECT()
-                user32.GetWindowRect(hwnd, ctypes.byref(rect))
-                w = rect.right - rect.left
-                h = rect.bottom - rect.top
-                if w > 80 and h > 80:
-                    # ZERO FLICKER GUARANTEE: Instantly hide window before desktop paints it
-                    user32.ShowWindow(hwnd, 0)
-                    if self.embedded_video_hwnd != hwnd:
-                        self.dock_video_window(hwnd)
-
-            elif event == 0x8001:  # EVENT_OBJECT_DESTROY
-                if self.embedded_video_hwnd == hwnd:
+            while True:
+                action, data = self.action_queue.get_nowait()
+                if action == "DOCK":
+                    child_hwnd, client_ip = data
+                    self.dock_video_window(child_hwnd, client_ip)
+                elif action == "UNDOCK":
                     self.switch_to_standby_mode()
+                elif action == "STATUS":
+                    text, color = data
+                    self.status_sub_lbl.config(text=text, fg=color)
+        except queue.Empty:
+            pass
         except Exception:
             pass
+
+        if self.running:
+            try:
+                self.root.after(20, self._process_queue_loop)
+            except Exception:
+                pass
 
     def start_engine(self):
         self.stop_engine()
@@ -702,14 +671,6 @@ class AirMirroringApp:
                         win32job.AssignProcessToJobObject(self.job, h_proc)
                     except Exception:
                         pass
-
-                # Install zero-flicker native WinEvent hook
-                if sys.platform == "win32" and self.engine_proc and self.engine_proc.pid:
-                    self.win_event_proc = WINEVENTPROC(self._on_win_event)
-                    # 0x8001 = EVENT_OBJECT_DESTROY, 0x8002 = EVENT_OBJECT_SHOW
-                    self.win_event_hook = user32.SetWinEventHook(
-                        0x8001, 0x8002, None, self.win_event_proc, self.engine_proc.pid, 0, 0
-                    )
                 
                 time.sleep(0.3)
                 if self.engine_proc.poll() is not None:
@@ -727,14 +688,6 @@ class AirMirroringApp:
         messagebox.showinfo("AirMirroring", "Ricevitore AirPlay riavviato con successo!")
 
     def stop_engine(self):
-        if self.win_event_hook:
-            try:
-                user32.UnhookWinEvent(self.win_event_hook)
-            except Exception:
-                pass
-            self.win_event_hook = None
-            self.win_event_proc = None
-
         if self.engine_proc:
             try:
                 self.engine_proc.terminate()
@@ -752,40 +705,37 @@ class AirMirroringApp:
             except Exception:
                 pass
 
-    def safe_after(self, func, *args):
-        """Thread-safe UI callback scheduling that checks if app is still running."""
-        if not self.running:
-            return
-        try:
-            self.root.after(0, func, *args)
-        except Exception:
-            pass
-
     def _connection_monitor_loop(self):
-        """Monitors network sockets and window states as safety fallback."""
+        """Monitors network sockets and video windows in real time with zero flicker."""
         while self.running:
-            time.sleep(1.0)
+            time.sleep(0.02)  # Ultra-fast 20ms real-time monitoring
             if not self.running:
                 break
-            if self.engine_proc and self.engine_proc.poll() is None:
-                client_ip = get_connected_client(self.engine_proc.pid)
-                
-                # Check for disconnection
-                if self.connected_client_ip and not client_ip:
+            if not self.engine_proc or self.engine_proc.poll() is not None:
+                continue
+
+            pid = self.engine_proc.pid
+
+            # Phase 1: Standby -> check for new render window or connected client
+            if not self.embedded_video_hwnd:
+                hwnds = find_video_window(pid)
+                if hwnds:
+                    video_hwnd = hwnds[0]
+                    # ZERO-FLICKER: Move off-screen immediately and hide before Windows can paint it!
+                    user32.SetWindowPos(video_hwnd, 0, -32000, -32000, 0, 0, 0x0001 | 0x0010)
+                    user32.ShowWindow(video_hwnd, 0)
+                    client_ip = get_connected_client(pid) or "iPhone"
+                    self.embedded_video_hwnd = video_hwnd
+                    self.connected_client_ip = client_ip
+                    self.action_queue.put(("DOCK", (video_hwnd, client_ip)))
+
+            # Phase 2: Streaming -> check for client disconnect or window close
+            else:
+                client_ip = get_connected_client(pid)
+                if not user32.IsWindow(self.embedded_video_hwnd) or (self.connected_client_ip and not client_ip):
+                    self.embedded_video_hwnd = None
                     self.connected_client_ip = None
-                    self.safe_after(self.switch_to_standby_mode)
-                elif self.embedded_video_hwnd and not user32.IsWindow(self.embedded_video_hwnd):
-                    self.safe_after(self.switch_to_standby_mode)
-                # Fallback: if client connected but hook didn't capture window yet
-                elif client_ip and not self.embedded_video_hwnd:
-                    hwnds = find_window_by_pid(self.engine_proc.pid)
-                    if hwnds:
-                        video_hwnd = hwnds[0]
-                        self.safe_after(lambda h=video_hwnd: self.dock_video_window(h))
-                    
-            elif self.engine_proc and self.engine_proc.poll() is not None:
-                self.safe_after(lambda: self.status_sub_lbl.config(
-                    text="Motore arrestato. Clicca Restart.", fg="#dc2626"))
+                    self.action_queue.put(("UNDOCK", None))
 
     def open_settings_dialog(self):
         SettingsDialog(self)
